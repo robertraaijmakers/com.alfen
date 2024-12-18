@@ -1,6 +1,7 @@
 {
   "name": {
-    "en": "chargepoint"
+    "en": "Chargepoint",
+    "nl": "Laadpaal"
   },
   "class": "evcharger",
   "capabilities": [
