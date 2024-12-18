@@ -6,6 +6,7 @@ import https from 'https';
 
 const energyMeterCapabilitiesMap: { [key: string]: string } = {
   '2221_16': 'measure_power',
+  '2501_2': 'onoff',
   '2221_22': 'meter_power',
   '2221_A': 'measure_current.l1',
   '2221_B': 'measure_current.l2',
@@ -181,16 +182,20 @@ module.exports = class MyDevice extends Homey.Device {
 
       const bodyResult = <ResponseBody>response.body;
       const result = bodyResult.properties;
-      const capabilitiesData = [];
+      const capabilitiesData: Array<{ capabilityId: string, value: number | string | boolean }> = [];
 
       for (const prop of result) {
         const capabilityId = energyMeterCapabilitiesMap[prop.id];
 
         if (capabilityId) {
-          let { value } = prop;
+          let value: string | number | boolean | null = null;
 
           // Handle specific rounding or transformation for certain properties
           switch (prop.id) {
+            case '2501_2':
+              value = this.statusToBool(prop.value);
+              // capabilitiesData.push({ capabilityId: 'evcharger_state', value: this.statusToString(prop.value) });
+              break;
             case '2221_3': // Ampere L1
             case '2221_4': // Ampere L2
             case '2221_5': // Ampere L3
@@ -204,6 +209,7 @@ module.exports = class MyDevice extends Homey.Device {
               value = Math.round(prop.value / 10) / 100; // rounding values, 2 decimal (but needs to be devided by 1000)
               break;
             default:
+              value = prop.value;
               break;
           }
 
@@ -263,7 +269,7 @@ module.exports = class MyDevice extends Homey.Device {
   }
 
   /** Helper Functions */
-  async updateCapabilities(capabilitiesData: Array<{ capabilityId: string, value: number | string }>) {
+  async updateCapabilities(capabilitiesData: Array<{ capabilityId: string, value: number | string | boolean }>) {
     const deviceState = this.getState();
 
     for (const { capabilityId, value } of capabilitiesData) {
@@ -330,6 +336,38 @@ module.exports = class MyDevice extends Homey.Device {
       }
       req.end();
     });
+  }
+
+  statusToString(statusKey: number): string {
+    const statusMapping: Record<number, string> = {
+      4: 'Available',
+      7: 'Cable connected',
+      10: 'Vehicle connected',
+      11: 'Charging',
+      17: 'Session end', // (Unit with socket only?) Cable still connected to EVSE after charging, but car disconnected. Screen shows charging stats until cable disconnected from EVSE.
+      26: 'ConnectorLock Failure', // Not able to lock cable. Please reconnect cable
+      34: 'Blocked', // EVSE is blocked through management interface of CPO.
+      36: 'Paused',
+      41: 'Solar charging',
+    };
+
+    return statusMapping[statusKey] ?? 'Unknown';
+  }
+
+  statusToBool(statusKey: number): boolean {
+    const statusMapping: Record<number, boolean> = {
+      4: false,
+      7: true,
+      10: true,
+      11: true,
+      17: true,
+      26: true,
+      34: false,
+      36: true,
+      41: true,
+    };
+
+    return statusMapping[statusKey] ?? false;
   }
 
 };

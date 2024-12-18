@@ -18,18 +18,6 @@
     "measure_current.limit"
   ],
   "capabilitiesOptions": {
-    "measure_power": {
-      "title": {
-        "en": "Power",
-        "nl": "Verbruik"
-      }
-    },
-    "meter_power": {
-      "title": {
-        "en": "Power Total",
-        "nl": "Totaal verbruik"
-      }
-    },
     "measure_current.l1": {
       "title": {
         "en": "Current L1",
