@@ -23,9 +23,9 @@ module.exports = class MyDriver extends Homey.Driver {
           id: 'my-charger',
         },
         store: {
-          address: '192.168.5.117',
+          address: '',
           username: 'admin',
-          password: 'XT8R@iwWjf-ugzkHx6Fgtq',
+          password: '',
         },
       },
     ];
