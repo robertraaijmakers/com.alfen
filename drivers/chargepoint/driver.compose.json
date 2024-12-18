@@ -1,0 +1,99 @@
+{
+  "name": {
+    "en": "chargepoint"
+  },
+  "class": "evcharger",
+  "capabilities": [
+    "onoff",
+    "measure_power",
+    "meter_power",
+    "measure_temperature",
+    "measure_current.l1",
+    "measure_current.l2",
+    "measure_current.l3",
+    "measure_voltage.l1",
+    "measure_voltage.l2",
+    "measure_voltage.l3",
+    "measure_current.limit"
+  ],
+  "capabilitiesOptions": {
+    "measure_power": {
+      "title": {
+        "en": "Power",
+        "nl": "Verbruik"
+      }
+    },
+    "meter_power": {
+      "title": {
+        "en": "Power Total",
+        "nl": "Totaal verbruik"
+      }
+    },
+    "measure_current.l1": {
+      "title": {
+        "en": "Current L1",
+        "nl": "Stroomsterkte L1"
+      }
+    },
+    "measure_current.l2": {
+      "title": {
+        "en": "Current L2",
+        "nl": "Stroomsterkte L2"
+      }
+    },
+    "measure_current.l3": {
+      "title": {
+        "en": "Current L3",
+        "nl": "Stroomsterkte L3"
+      }
+    },
+    "measure_current.limit": {
+      "title": {
+        "en": "Current Limit",
+        "nl": "Stroomsterkte Limiet"
+      }
+    },
+    "measure_voltage.l1": {
+      "title": {
+        "en": "Voltage 1",
+        "nl": "Voltage 1"
+      }
+    },
+    "measure_voltage.l2": {
+      "title": {
+        "en": "Voltage 2",
+        "nl": "Voltage 2"
+      }
+    },
+    "measure_voltage.l3": {
+      "title": {
+        "en": "Voltage 3",
+        "nl": "Voltage 3"
+      }
+    }
+  },
+  "platforms": [
+    "local"
+  ],
+  "connectivity": [
+    "lan"
+  ],
+  "images": {
+    "small": "{{driverAssetsPath}}/images/small.png",
+    "large": "{{driverAssetsPath}}/images/large.png",
+    "xlarge": "{{driverAssetsPath}}/images/xlarge.png"
+  },
+  "pair": [
+    {
+      "id": "list_devices",
+      "template": "list_devices",
+      "navigation": {
+        "next": "add_devices"
+      }
+    },
+    {
+      "id": "add_devices",
+      "template": "add_devices"
+    }
+  ]
+}
