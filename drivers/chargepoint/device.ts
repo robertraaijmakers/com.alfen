@@ -1,9 +1,8 @@
 'use strict';
 
 import Homey from 'homey';
-import { IncomingHttpHeaders } from 'http';
 import https from 'https';
-import { DeviceSettings } from './types';
+import { DeviceSettings, HttpsPromiseOptions, HttpsPromiseResponse, PropertyResponseBody } from '../../localTypes/types';
 
 const energyMeterCapabilitiesMap: { [key: string]: string } = {
   '2221_16': 'measure_power',
@@ -18,34 +17,6 @@ const energyMeterCapabilitiesMap: { [key: string]: string } = {
   '2201_0': 'measure_temperature',
   '2129_0': 'measure_current.limit',
 };
-
-interface HttpsPromiseOptions {
-  body?: string | Buffer;
-  hostname: string;
-  path: string;
-  method: string;
-  headers: { [key: string]: string };
-  agent: https.Agent,
-  rejectUnauthorized?: boolean; // Optional for SSL/TLS validation
-}
-
-interface HttpsPromiseResponse {
-  body: string | object;
-  headers: IncomingHttpHeaders;
-}
-
-interface InfoResponse {
-  id: string,
-  access: number,
-  type: number,
-  len: number,
-  cat: string,
-  value: number,
-}
-
-interface ResponseBody {
-  properties: InfoResponse[]; // Adjust based on actual response structure
-}
 
 module.exports = class MyDevice extends Homey.Device {
 
@@ -180,7 +151,7 @@ module.exports = class MyDevice extends Homey.Device {
       // Handle the response
       this.log('Properties retrieved successfully:', response.body);
 
-      const bodyResult = <ResponseBody>response.body;
+      const bodyResult = <PropertyResponseBody>response.body;
       const result = bodyResult.properties;
       const capabilitiesData: Array<{ capabilityId: string, value: number | string | boolean }> = [];
 

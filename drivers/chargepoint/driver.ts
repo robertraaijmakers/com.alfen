@@ -2,33 +2,8 @@
 
 import Homey from 'homey';
 import https from 'https';
-import { IncomingHttpHeaders } from 'http';
 import PairSession from 'homey/lib/PairSession';
-import { PairData } from './types';
-
-interface HttpsPromiseOptions {
-  body?: string | Buffer;
-  hostname: string;
-  path: string;
-  method: string;
-  headers: { [key: string]: string };
-  agent: https.Agent,
-  rejectUnauthorized?: boolean; // Optional for SSL/TLS validation
-}
-
-interface HttpsPromiseResponse {
-  body: string | object;
-  headers: IncomingHttpHeaders;
-}
-
-interface InfoResponse {
-  Identity: string,
-  ContentType: string,
-  Model: string,
-  ObjectId: string,
-  Type: string,
-  FWVersion: string,
-}
+import { PairData, InfoResponse, HttpsPromiseOptions, HttpsPromiseResponse } from '../../localTypes/types';
 
 module.exports = class MyDriver extends Homey.Driver {
 
