@@ -3,10 +3,11 @@
 import Homey from 'homey';
 import { IncomingHttpHeaders } from 'http';
 import https from 'https';
+import { DeviceSettings } from './types';
 
 const energyMeterCapabilitiesMap: { [key: string]: string } = {
   '2221_16': 'measure_power',
-  '2501_2': 'onoff',
+  // '2501_2': 'onoff',
   '2221_22': 'meter_power',
   '2221_A': 'measure_current.l1',
   '2221_B': 'measure_current.l2',
@@ -33,12 +34,6 @@ interface HttpsPromiseResponse {
   headers: IncomingHttpHeaders;
 }
 
-interface DeviceSettings {
-  address: string,
-  username: string,
-  password: string,
-}
-
 interface InfoResponse {
   id: string,
   access: number,
@@ -54,12 +49,6 @@ interface ResponseBody {
 
 module.exports = class MyDevice extends Homey.Device {
 
-  deviceSettings: DeviceSettings = {
-    address: '',
-    username: 'admin',
-    password: '',
-  };
-
   refreshRate: number = 30;
   apiHeader: string = 'alfen/json; charset=utf-8';
   apiUrl: string = 'api';
@@ -70,6 +59,12 @@ module.exports = class MyDevice extends Homey.Device {
   async onInit() {
     this.homey.setInterval(this.refreshDevice.bind(this), this.refreshRate * 1000);
     this.log('MyDevice has been initialized');
+
+    // Remove on-off capability for older devices
+    if (this.hasCapability('onoff')) {
+      await this.removeCapability('onoff');
+    }
+
     await this.refreshDevice();
   }
 
@@ -81,16 +76,21 @@ module.exports = class MyDevice extends Homey.Device {
       maxSockets: 1, // Optionally limit the number of sockets (default is Infinity)
     });
 
-    await this.apiLogin(agent);
-    const result = await this.apiGetActualValues(agent);
-    await this.apiLogout(agent);
+    try {
+      await this.apiLogin(agent);
+      const result = await this.apiGetActualValues(agent);
+      await this.apiLogout(agent);
 
-    // Parse result values
-    await this.updateCapabilities(result);
+      // Parse result values
+      await this.updateCapabilities(result);
+    } catch (error) {
+      this.log('Error refreshing device:', error);
+    }
   }
 
   async apiLogin(agent: https.Agent) {
-    const { address, username, password } = this.deviceSettings;
+    const settings : DeviceSettings = await this.getSettings();
+    const { username, password } = settings;
     const { apiUrl, apiHeader } = this;
 
     // Define the request body
@@ -101,7 +101,7 @@ module.exports = class MyDevice extends Homey.Device {
 
     // Define the options for the HTTPS request
     const options = {
-      hostname: address,
+      hostname: settings.ip,
       path: `/${apiUrl}/login`,
       method: 'POST',
       headers: {
@@ -126,12 +126,12 @@ module.exports = class MyDevice extends Homey.Device {
   }
 
   async apiLogout(agent: https.Agent) {
-    const { address } = this.deviceSettings;
+    const { ip } = this.getSettings();
     const { apiUrl, apiHeader } = this;
 
     // Define the options for the HTTPS request
     const options = {
-      hostname: address,
+      hostname: ip,
       path: `/${apiUrl}/logout`,
       method: 'POST',
       headers: {
@@ -154,7 +154,7 @@ module.exports = class MyDevice extends Homey.Device {
   }
 
   async apiGetActualValues(agent: https.Agent) {
-    const { address } = this.deviceSettings;
+    const { ip } = this.getSettings();
     const { apiUrl, apiHeader } = this;
 
     // Define the 'ids' parameter
@@ -162,7 +162,7 @@ module.exports = class MyDevice extends Homey.Device {
 
     // Define the options for the HTTPS request (no body, just headers)
     const options: HttpsPromiseOptions = {
-      hostname: address,
+      hostname: ip,
       path: `/${apiUrl}/prop?ids=${ids}`, // Add the 'ids' parameter to the path
       method: 'GET',
       headers: {

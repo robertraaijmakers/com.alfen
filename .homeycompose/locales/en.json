@@ -1,0 +1,9 @@
+{
+    "pair": {
+        "title": "Please enter your details",
+        "ip": "IP Address",
+        "user": "Username",
+        "password": "Password",
+        "connect": "Connect"
+    }
+}

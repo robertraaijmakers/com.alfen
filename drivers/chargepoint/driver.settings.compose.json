@@ -1,0 +1,32 @@
+[
+    {
+        "id": "ip",
+        "type": "text",
+        "label": {
+            "en": "IP address"
+        },
+        "hint": {
+            "en": "The ip address of the Alfen charger, this must be a static IP address."
+        }
+    },
+    {
+        "id": "username",
+        "type": "text",
+        "label": {
+            "en": "Username"
+        },
+        "hint": {
+            "en": "The username to authenticate towards the charge point"
+        }
+    },
+    {
+        "id": "password",
+        "type": "password",
+        "label": {
+            "en": "Password"
+        },
+        "hint": {
+            "en": "The password to authenticate towards the charge point"
+        }
+    }
+]
