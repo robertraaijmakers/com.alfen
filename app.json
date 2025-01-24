@@ -26,6 +26,7 @@
     "name": "Robert Raaijmakers",
     "email": "dutchfighter@live.nl"
   },
+  "brandColor": "#008FC9",
   "drivers": [
     {
       "name": {
@@ -96,9 +97,9 @@
         "lan"
       ],
       "images": {
-        "small": "/drivers/chargepoint/assets/images/small.png",
-        "large": "/drivers/chargepoint/assets/images/large.png",
-        "xlarge": "/drivers/chargepoint/assets/images/xlarge.png"
+        "small": "/drivers/chargepoint/assets/images/small.jpg",
+        "large": "/drivers/chargepoint/assets/images/large.jpg",
+        "xlarge": "/drivers/chargepoint/assets/images/xlarge.jpg"
       },
       "pair": [
         {
