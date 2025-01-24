@@ -11,12 +11,14 @@
     "en": "Alfen"
   },
   "description": {
-    "en": "Adds support for Alfen devices"
+    "en": "Adds support for Alfen chargestation.",
+    "nl": "Voegt ondersteuning toe voor de Alfen laadpaal."
   },
   "category": [
     "energy"
   ],
   "permissions": [],
+  "brandColor": "#008FC9",
   "images": {
     "small": "/assets/images/small.png",
     "large": "/assets/images/large.png",
@@ -26,7 +28,28 @@
     "name": "Robert Raaijmakers",
     "email": "dutchfighter@live.nl"
   },
-  "brandColor": "#008FC9",
+  "contributors": {
+    "developers": [
+      {
+        "name": "Robert Raaijmakers",
+        "email": "dutchfighter@live.nl"
+      }
+    ]
+  },
+  "contributing": {
+    "donate": {
+      "paypal": {
+        "username": "RobertRaaijmakers"
+      }
+    }
+  },
+  "bugs": {
+    "url": "https://github.com/robertraaijmakers/com.alfen/issues"
+  },
+  "homepage": "https://robertraaijmakers.github.io/com.alfen/",
+  "support": "https://robertraaijmakers.github.io/com.alfen/",
+  "homeyCommunityTopicId": 76738,
+  "source": "https://github.com/robertraaijmakers/com.alfen/",
   "drivers": [
     {
       "name": {
