@@ -8,15 +8,18 @@
     "local"
   ],
   "name": {
-    "en": "Alfen"
+    "en": "Alfen",
+    "nl": "Alfen"
   },
   "description": {
-    "en": "Adds support for Alfen devices"
+    "en": "Optimal Charging, Smarter Homes: Powering Efficiency for You and the Grid",
+    "nl": "Optimaal Laden, Slimmer Huis: Voorziet in efficiëntie voor u en het net"
   },
   "category": [
     "energy"
   ],
   "permissions": [],
+  "brandColor": "#008FC9",
   "images": {
     "small": "/assets/images/small.png",
     "large": "/assets/images/large.png",
@@ -26,6 +29,28 @@
     "name": "Robert Raaijmakers",
     "email": "dutchfighter@live.nl"
   },
+  "contributors": {
+    "developers": [
+      {
+        "name": "Robert Raaijmakers",
+        "email": "dutchfighter@live.nl"
+      }
+    ]
+  },
+  "contributing": {
+    "donate": {
+      "paypal": {
+        "username": "RobertRaaijmakers"
+      }
+    }
+  },
+  "bugs": {
+    "url": "https://github.com/robertraaijmakers/com.alfen/issues"
+  },
+  "homepage": "https://robertraaijmakers.github.io/com.alfen/",
+  "support": "https://robertraaijmakers.github.io/com.alfen/",
+  "homeyCommunityTopicId": 76738,
+  "source": "https://github.com/robertraaijmakers/com.alfen/",
   "drivers": [
     {
       "name": {
@@ -96,9 +121,9 @@
         "lan"
       ],
       "images": {
-        "small": "/drivers/chargepoint/assets/images/small.png",
-        "large": "/drivers/chargepoint/assets/images/large.png",
-        "xlarge": "/drivers/chargepoint/assets/images/xlarge.png"
+        "small": "/drivers/chargepoint/assets/images/small.jpg",
+        "large": "/drivers/chargepoint/assets/images/large.jpg",
+        "xlarge": "/drivers/chargepoint/assets/images/xlarge.jpg"
       },
       "pair": [
         {

@@ -18,6 +18,7 @@
     "energy"
   ],
   "permissions": [],
+  "brandColor": "#008FC9",
   "images": {
     "small": "/assets/images/small.png",
     "large": "/assets/images/large.png",
@@ -26,5 +27,27 @@
   "author": {
     "name": "Robert Raaijmakers",
     "email": "dutchfighter@live.nl"
-  }
+  },
+  "contributors": {
+    "developers": [
+      {
+        "name": "Robert Raaijmakers",
+        "email": "dutchfighter@live.nl"
+      }
+    ]
+  },
+  "contributing": {
+    "donate": {
+      "paypal": {
+        "username": "RobertRaaijmakers"
+      }
+    }
+  },
+  "bugs": {
+    "url": "https://github.com/robertraaijmakers/com.alfen/issues"
+  },
+  "homepage": "https://robertraaijmakers.github.io/com.alfen/",
+  "support": "https://robertraaijmakers.github.io/com.alfen/",
+  "homeyCommunityTopicId": 76738,
+  "source": "https://github.com/robertraaijmakers/com.alfen/"
 }
