@@ -7,10 +7,12 @@
     "local"
   ],
   "name": {
-    "en": "Alfen"
+    "en": "Alfen",
+    "nl": "Alfen"
   },
   "description": {
-    "en": "Adds support for Alfen devices"
+    "en": "Optimal Charging, Smarter Homes: Powering Efficiency for You and the Grid",
+    "nl": "Optimaal Laden, Slimmer Huis: Voorziet in efficiëntie voor u en het net"
   },
   "category": [
     "energy"
