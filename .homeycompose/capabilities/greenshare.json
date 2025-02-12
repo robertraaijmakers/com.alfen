@@ -1,0 +1,17 @@
+{
+    "type": "number",
+    "title": { 
+        "en": "Green Share %",
+        "nl": "Groenestroom %"
+    },
+    "units": "%",
+    "getable": true,
+    "setable": true,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "decimals": 0,
+    "uiComponent": "slider",
+    "uiQuickAction": false,
+    "icon": "/assets/icon.svg"
+  }

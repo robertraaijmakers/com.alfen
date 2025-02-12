@@ -68,7 +68,14 @@
         "measure_voltage.l1",
         "measure_voltage.l2",
         "measure_voltage.l3",
-        "measure_current.limit"
+        "meter_power.l1",
+        "meter_power.l2",
+        "meter_power.l3",
+        "measure_current.limit",
+        "measure_current.stationlimit",
+        "greenshare",
+        "comfortchargelevel",
+        "chargetype"
       ],
       "capabilitiesOptions": {
         "measure_current.l1": {
@@ -93,24 +100,52 @@
           "title": {
             "en": "Current Limit",
             "nl": "Stroomsterkte Limiet"
+          },
+          "min": 1,
+          "max": 16,
+          "step": 1,
+          "setable": true
+        },
+        "measure_current.stationlimit": {
+          "title": {
+            "en": "Current Limit Station",
+            "nl": "Stroomsterkte Limiet Station"
           }
         },
         "measure_voltage.l1": {
           "title": {
-            "en": "Voltage 1",
-            "nl": "Voltage 1"
+            "en": "Voltage L1",
+            "nl": "Voltage L1"
           }
         },
         "measure_voltage.l2": {
           "title": {
-            "en": "Voltage 2",
-            "nl": "Voltage 2"
+            "en": "Voltage L2",
+            "nl": "Voltage L2"
           }
         },
         "measure_voltage.l3": {
           "title": {
-            "en": "Voltage 3",
-            "nl": "Voltage 3"
+            "en": "Voltage L3",
+            "nl": "Voltage L3"
+          }
+        },
+        "meter_power.l1": {
+          "title": {
+            "en": "Power L1",
+            "nl": "Power L1"
+          }
+        },
+        "meter_power.l2": {
+          "title": {
+            "en": "Power L2",
+            "nl": "Power L2"
+          }
+        },
+        "meter_power.l3": {
+          "title": {
+            "en": "Power L3",
+            "nl": "Power L3"
           }
         }
       },
@@ -175,5 +210,76 @@
         }
       ]
     }
-  ]
+  ],
+  "capabilities": {
+    "chargetype": {
+      "type": "enum",
+      "title": {
+        "en": "Green Comfort Level",
+        "nl": "Comfortabel Laadniveau"
+      },
+      "values": [
+        {
+          "id": "normal",
+          "title": {
+            "en": "Default",
+            "nl": "Standard"
+          }
+        },
+        {
+          "id": "comfort",
+          "title": {
+            "en": "Comfort",
+            "nl": "Comfortable"
+          }
+        },
+        {
+          "id": "green",
+          "title": {
+            "en": "Green",
+            "nl": "Groen"
+          }
+        }
+      ],
+      "getable": true,
+      "setable": true,
+      "uiComponent": "picker",
+      "uiQuickAction": true,
+      "icon": "/assets/icon.svg"
+    },
+    "comfortchargelevel": {
+      "type": "number",
+      "title": {
+        "en": "Green Comfort Level",
+        "nl": "Comfortabel Laadniveau"
+      },
+      "units": "W",
+      "getable": true,
+      "setable": true,
+      "min": 1400,
+      "max": 5000,
+      "step": 1,
+      "decimals": 0,
+      "uiComponent": "slider",
+      "uiQuickAction": false,
+      "icon": "/assets/icon.svg"
+    },
+    "greenshare": {
+      "type": "number",
+      "title": {
+        "en": "Green Share %",
+        "nl": "Groenestroom %"
+      },
+      "units": "%",
+      "getable": true,
+      "setable": true,
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "decimals": 0,
+      "uiComponent": "slider",
+      "uiQuickAction": false,
+      "icon": "/assets/icon.svg"
+    }
+  }
 }

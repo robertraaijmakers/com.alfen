@@ -1,0 +1,17 @@
+{
+    "type": "number",
+    "title": { 
+        "en": "Green Comfort Level",
+        "nl": "Comfortabel Laadniveau"
+    },
+    "units": "W",
+    "getable": true,
+    "setable": true,
+    "min": 1400,
+    "max": 5000,
+    "step": 1,
+    "decimals": 0,
+    "uiComponent": "slider",
+    "uiQuickAction": false,
+    "icon": "/assets/icon.svg"
+  }
