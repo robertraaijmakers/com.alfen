@@ -1,7 +1,7 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.alfen",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "compatibility": ">=12.0.0",
   "sdk": 3,
   "platforms": [
@@ -51,6 +51,191 @@
   "support": "https://robertraaijmakers.github.io/com.alfen/",
   "homeyCommunityTopicId": 76738,
   "source": "https://github.com/robertraaijmakers/com.alfen/",
+  "flow": {
+    "actions": [
+      {
+        "id": "greenshare",
+        "title": {
+          "en": "Set green share %",
+          "nl": "Zet % groene stroom"
+        },
+        "titleFormatted": {
+          "en": "Set green share to [[greenshare]]",
+          "nl": "Zet aandeel groene stroom op [[greenshare]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=chargepoint"
+          },
+          {
+            "type": "range",
+            "name": "greenshare",
+            "title": {
+              "en": "Green share %",
+              "nl": "Groene stroom %"
+            },
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "label": "%"
+          }
+        ]
+      },
+      {
+        "id": "comfortchargelevel",
+        "title": {
+          "en": "Set comfort charge level",
+          "nl": "Zet comfort laadniveau"
+        },
+        "titleFormatted": {
+          "en": "Set comfort charge level to [[comfortchargelevel]]",
+          "nl": "Zet comfort laadniveau op [[comfortchargelevel]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=chargepoint"
+          },
+          {
+            "type": "range",
+            "name": "comfortchargelevel",
+            "title": {
+              "en": "Comfort charge level",
+              "nl": "Comfort laadniveau"
+            },
+            "min": 1400,
+            "max": 5000,
+            "step": 1,
+            "label": "W"
+          }
+        ]
+      },
+      {
+        "id": "chargetype",
+        "title": {
+          "en": "Set charge type",
+          "nl": "Zet manier van laden"
+        },
+        "titleFormatted": {
+          "en": "Set charge type to [[chargetype]]",
+          "nl": "Zet manier van laden op [[chargetype]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=chargepoint"
+          },
+          {
+            "type": "dropdown",
+            "name": "chargetype",
+            "title": {
+              "en": "Charge type",
+              "nl": "Manier van laden"
+            },
+            "values": [
+              {
+                "id": "0",
+                "title": {
+                  "en": "Default",
+                  "nl": "Standaard"
+                }
+              },
+              {
+                "id": "1",
+                "title": {
+                  "en": "Comfort + Solar",
+                  "nl": "Comfortable + Groen"
+                }
+              },
+              {
+                "id": "2",
+                "title": {
+                  "en": "100% green",
+                  "nl": "100% groen"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "authmode",
+        "title": {
+          "en": "Set authentication mode",
+          "nl": "Zet authenticatie modus"
+        },
+        "titleFormatted": {
+          "en": "Set authentication mode to [[authmode]]",
+          "nl": "Zet authenticatie modus op [[authmode]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=chargepoint"
+          },
+          {
+            "type": "dropdown",
+            "name": "authmode",
+            "title": {
+              "en": "Authentication mode",
+              "nl": "Authenticatie modus"
+            },
+            "values": [
+              {
+                "id": "0",
+                "title": {
+                  "en": "Plug and Charge",
+                  "nl": "Inpluggen en laden"
+                }
+              },
+              {
+                "id": "2",
+                "title": {
+                  "en": "RFID",
+                  "nl": "RFID"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "measure_current.limit",
+        "title": {
+          "en": "Set current limit",
+          "nl": "Beperk laadsnelheid"
+        },
+        "titleFormatted": {
+          "en": "Set current limit to [[limit]]",
+          "nl": "Beperk laadsnelheid tot [[limit]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=chargepoint"
+          },
+          {
+            "type": "range",
+            "name": "limit",
+            "title": {
+              "en": "Current limit",
+              "nl": "Laadsnelheid"
+            },
+            "min": 1,
+            "max": 32,
+            "step": 1,
+            "label": "A"
+          }
+        ]
+      }
+    ]
+  },
   "drivers": [
     {
       "name": {
@@ -59,6 +244,7 @@
       },
       "class": "evcharger",
       "capabilities": [
+        "operatingmode",
         "measure_power",
         "meter_power",
         "measure_temperature",
@@ -68,14 +254,15 @@
         "measure_voltage.l1",
         "measure_voltage.l2",
         "measure_voltage.l3",
-        "meter_power.l1",
-        "meter_power.l2",
-        "meter_power.l3",
+        "measure_power.l1",
+        "measure_power.l2",
+        "measure_power.l3",
         "measure_current.limit",
         "measure_current.stationlimit",
         "greenshare",
         "comfortchargelevel",
-        "chargetype"
+        "chargetype",
+        "authmode"
       ],
       "capabilitiesOptions": {
         "measure_current.l1": {
@@ -130,19 +317,19 @@
             "nl": "Voltage L3"
           }
         },
-        "meter_power.l1": {
+        "measure_power.l1": {
           "title": {
             "en": "Power L1",
             "nl": "Power L1"
           }
         },
-        "meter_power.l2": {
+        "measure_power.l2": {
           "title": {
             "en": "Power L2",
             "nl": "Power L2"
           }
         },
-        "meter_power.l3": {
+        "measure_power.l3": {
           "title": {
             "en": "Power L3",
             "nl": "Power L3"
@@ -212,6 +399,34 @@
     }
   ],
   "capabilities": {
+    "authmode": {
+      "type": "enum",
+      "title": {
+        "en": "Authentication Mode",
+        "nl": "Authenticatie Mode"
+      },
+      "values": [
+        {
+          "id": "0",
+          "title": {
+            "en": "Plug and Charge",
+            "nl": "Inpluggen en laden"
+          }
+        },
+        {
+          "id": "2",
+          "title": {
+            "en": "RFID",
+            "nl": "RFID"
+          }
+        }
+      ],
+      "getable": true,
+      "setable": true,
+      "uiComponent": "picker",
+      "uiQuickAction": false,
+      "icon": "/assets/icon.svg"
+    },
     "chargetype": {
       "type": "enum",
       "title": {
@@ -220,37 +435,37 @@
       },
       "values": [
         {
-          "id": "normal",
+          "id": "0",
           "title": {
             "en": "Default",
-            "nl": "Standard"
+            "nl": "Standaard"
           }
         },
         {
-          "id": "comfort",
+          "id": "1",
           "title": {
-            "en": "Comfort",
-            "nl": "Comfortable"
+            "en": "Comfort + Green",
+            "nl": "Comfortable + Groen"
           }
         },
         {
-          "id": "green",
+          "id": "2",
           "title": {
-            "en": "Green",
-            "nl": "Groen"
+            "en": "100% green",
+            "nl": "100% groen"
           }
         }
       ],
       "getable": true,
       "setable": true,
       "uiComponent": "picker",
-      "uiQuickAction": true,
+      "uiQuickAction": false,
       "icon": "/assets/icon.svg"
     },
     "comfortchargelevel": {
       "type": "number",
       "title": {
-        "en": "Green Comfort Level",
+        "en": "Comfort Charging Level",
         "nl": "Comfortabel Laadniveau"
       },
       "units": "W",
@@ -260,9 +475,9 @@
       "max": 5000,
       "step": 1,
       "decimals": 0,
-      "uiComponent": "slider",
+      "uiComponent": "sensor",
       "uiQuickAction": false,
-      "icon": "/assets/icon.svg"
+      "icon": "/assets/comfort-level.svg"
     },
     "greenshare": {
       "type": "number",
@@ -277,9 +492,20 @@
       "max": 100,
       "step": 1,
       "decimals": 0,
-      "uiComponent": "slider",
+      "uiComponent": "sensor",
       "uiQuickAction": false,
-      "icon": "/assets/icon.svg"
+      "icon": "/assets/green-share.svg"
+    },
+    "operatingmode": {
+      "type": "string",
+      "title": {
+        "en": "Status",
+        "nl": "Status"
+      },
+      "getable": true,
+      "setable": false,
+      "uiQuickAction": false,
+      "icon": "/assets/operating-mode.svg"
     }
   }
 }

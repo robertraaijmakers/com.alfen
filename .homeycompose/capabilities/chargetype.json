@@ -6,30 +6,30 @@
     },
     "values": [
         {
-            "id": "normal",
+            "id": "0",
             "title": {
                 "en": "Default",
-                "nl": "Standard"
+                "nl": "Standaard"
             }
         },
         {
-            "id": "comfort",
+            "id": "1",
             "title": {
-                "en": "Comfort",
-                "nl": "Comfortable"
+                "en": "Comfort + Green",
+                "nl": "Comfortable + Groen"
             }
         },
         {
-            "id": "green",
+            "id": "2",
             "title": {
-                "en": "Green",
-                "nl": "Groen"
+                "en": "100% green",
+                "nl": "100% groen"
             }
         }
     ],
     "getable": true,
     "setable": true,
     "uiComponent": "picker",
-    "uiQuickAction": true,
+    "uiQuickAction": false,
     "icon": "/assets/icon.svg"
   }

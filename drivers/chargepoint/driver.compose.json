@@ -5,6 +5,7 @@
   },
   "class": "evcharger",
   "capabilities": [
+    "operatingmode",
     "measure_power",
     "meter_power",
     "measure_temperature",
@@ -14,14 +15,15 @@
     "measure_voltage.l1",
     "measure_voltage.l2",
     "measure_voltage.l3",
-    "meter_power.l1",
-    "meter_power.l2",
-    "meter_power.l3",
+    "measure_power.l1",
+    "measure_power.l2",
+    "measure_power.l3",
     "measure_current.limit",
     "measure_current.stationlimit",
     "greenshare",
     "comfortchargelevel",
-    "chargetype"
+    "chargetype",
+    "authmode"
   ],
   "capabilitiesOptions": {
     "measure_current.l1": {
@@ -76,19 +78,19 @@
         "nl": "Voltage L3"
       }
     },
-    "meter_power.l1": {
+    "measure_power.l1": {
       "title": {
         "en": "Power L1",
         "nl": "Power L1"
       }
     },
-    "meter_power.l2": {
+    "measure_power.l2": {
       "title": {
         "en": "Power L2",
         "nl": "Power L2"
       }
     },
-    "meter_power.l3": {
+    "measure_power.l3": {
       "title": {
         "en": "Power L3",
         "nl": "Power L3"

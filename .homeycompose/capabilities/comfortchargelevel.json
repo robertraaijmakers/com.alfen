@@ -1,7 +1,7 @@
 {
     "type": "number",
     "title": { 
-        "en": "Green Comfort Level",
+        "en": "Comfort Charging Level",
         "nl": "Comfortabel Laadniveau"
     },
     "units": "W",
@@ -11,7 +11,7 @@
     "max": 5000,
     "step": 1,
     "decimals": 0,
-    "uiComponent": "slider",
+    "uiComponent": "sensor",
     "uiQuickAction": false,
-    "icon": "/assets/icon.svg"
+    "icon": "/assets/comfort-level.svg"
   }

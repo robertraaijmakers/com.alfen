@@ -11,7 +11,7 @@
     "max": 100,
     "step": 1,
     "decimals": 0,
-    "uiComponent": "slider",
+    "uiComponent": "sensor",
     "uiQuickAction": false,
-    "icon": "/assets/icon.svg"
+    "icon": "/assets/green-share.svg"
   }

@@ -8,12 +8,12 @@ module.exports = class MyDevice extends Homey.Device {
   refreshRate: number = 30;
   apiHeader: string = 'alfen/json; charset=utf-8';
   apiUrl: string = 'api';
+  alfenApi!: AlfenApi;
 
   /**
    * onInit is called when the device is initialized.
    */
   async onInit() {
-    this.homey.setInterval(this.refreshDevice.bind(this), this.refreshRate * 1000);
     this.log('MyDevice has been initialized');
 
     // Remove on-off capability for older devices
@@ -21,24 +21,46 @@ module.exports = class MyDevice extends Homey.Device {
       await this.removeCapability('onoff');
     }
 
+    if (this.hasCapability('meter_power.l1')) {
+      await this.removeCapability('meter_power.l1');
+    }
+
+    if (this.hasCapability('meter_power.l2')) {
+      await this.removeCapability('meter_power.l2');
+    }
+
+    if (this.hasCapability('meter_power.l3')) {
+      await this.removeCapability('meter_power.l3');
+    }
+
+    // Initiate the Alfen API
+    const settings: DeviceSettings = await this.getSettings();
+    this.alfenApi = new AlfenApi(this.log, settings.ip, settings.username, settings.password);
+
+    // Register property listeners
+    this.#registerCapabilityListeners();
+
+    // Register flow card listeners
+    this.#registerFlowCardListeners();
+
+    // Set interval and refresh device data
+    this.homey.setInterval(this.refreshDevice.bind(this), this.refreshRate * 1000);
     await this.refreshDevice();
   }
 
   async refreshDevice() {
     this.log('Refresh Device');
 
-    const settings: DeviceSettings = await this.getSettings();
-    const alfenApi = new AlfenApi(this.log, settings.ip, settings.username, settings.password);
-
     try {
-      await alfenApi.apiLogin();
-      const result = await alfenApi.apiGetActualValues();
-      await alfenApi.apiLogout();
+      await this.alfenApi.apiLogin();
+      const result = await this.alfenApi.apiGetActualValues();
+      await this.alfenApi.apiLogout();
 
       // Parse result values
       await this.updateCapabilities(result);
     } catch (error) {
       this.log('Error refreshing device:', error);
+      throw new Error(`${error}`);
     }
   }
 
@@ -71,6 +93,15 @@ module.exports = class MyDevice extends Homey.Device {
     changedKeys: string[];
   }): Promise<string | void> {
     this.log('MyDevice settings where changed');
+
+    const settings: DeviceSettings = {
+      ...newSettings,
+      ip: newSettings.ip as string,
+      username: newSettings.username as string,
+      password: newSettings.password as string,
+    };
+
+    this.alfenApi = new AlfenApi(this.log, settings.ip, settings.username, settings.password);
   }
 
   /**
@@ -106,11 +137,123 @@ module.exports = class MyDevice extends Homey.Device {
         if (value === null || (typeof deviceState !== 'undefined' && typeof deviceState[capabilityId] !== 'undefined' && deviceState[capabilityId] === value)) continue;
 
         await this.setCapabilityValue(capabilityId, value)
-          .catch(this.error)
+          .catch((error) => this.error(`Error updating capability ${capabilityId} with value ${value}: `, error))
           .then(() => this.log(`Update capability: ${capabilityId} with value ${value}`));
       } catch (error) {
         this.error(`Error updating capability ${capabilityId}:`, error);
       }
     }
+  }
+
+  async #registerCapabilityListeners() {
+    this.registerCapabilityListener('comfortchargelevel', async (value) => {
+      await this.#setComfortChargeLevel(value);
+    });
+
+    this.registerCapabilityListener('greenshare', async (value) => {
+      await this.#setGreenSharePercentage(value);
+    });
+
+    this.registerCapabilityListener('chargetype', async (value) => {
+      await this.#setChargeType(value);
+    });
+
+    this.registerCapabilityListener('authmode', async (value) => {
+      await this.#setAuthMode(value);
+    });
+  }
+
+  async #registerFlowCardListeners() {
+    this.homey.flow.getActionCard('comfortchargelevel').registerRunListener(async (args, state) => {
+      this.log('Flow card action', args, state);
+      await this.#setComfortChargeLevel(args.comfortchargelevel);
+    });
+
+    this.homey.flow.getActionCard('greenshare').registerRunListener(async (args, state) => {
+      this.log('Flow card action', args, state);
+      await this.#setGreenSharePercentage(args.greenshare);
+    });
+
+    this.homey.flow.getActionCard('chargetype').registerRunListener(async (args, state) => {
+      this.log('Flow card action', args, state);
+      await this.#setChargeType(args.chargetype);
+    });
+
+    this.homey.flow.getActionCard('authmode').registerRunListener(async (args, state) => {
+      this.log('Flow card action', args, state);
+      await this.#setAuthMode(args.authmode);
+    });
+
+    this.homey.flow.getActionCard('measure_current.limit').registerRunListener(async (args, state) => {
+      this.log('Flow card action', args, state);
+      await this.#setCurrentLimit(args.limit);
+    });
+  }
+
+  async #setChargeType(value: string) {
+    this.log('setChargeType', value);
+
+    try {
+      await this.alfenApi.apiLogin();
+      await this.alfenApi.apiSetChargeType(value);
+      await this.alfenApi.apiLogout();
+    } catch (error) {
+      this.log('Error setting charge type:', error);
+      throw new Error(`${error}`);
+    }
+  }
+
+  async #setComfortChargeLevel(value: number) {
+    this.log('setComfortChargeLevel', value);
+
+    try {
+      await this.alfenApi.apiLogin();
+      await this.alfenApi.apiSetComfortChargeLevel(value);
+      await this.alfenApi.apiLogout();
+    } catch (error) {
+      this.log('Error setting comfort charge level:', error);
+      throw new Error(`${error}`);
+    }
+  }
+
+  async #setGreenSharePercentage(value: number) {
+    this.log('setGreenSharePercentage', value);
+
+    try {
+      await this.alfenApi.apiLogin();
+      await this.alfenApi.apiSetGreenSharePercentage(value);
+      await this.alfenApi.apiLogout();
+    } catch (error) {
+      this.log('Error setting green share percentage:', error);
+      throw new Error(`${error}`);
+    }
+  }
+
+  async #setAuthMode(value: string) {
+    this.log('setAuthMode', value);
+
+    try {
+      await this.alfenApi.apiLogin();
+      await this.alfenApi.apiSetAuthMode(value);
+      await this.alfenApi.apiLogout();
+    } catch (error) {
+      this.log('Error setting auth mode:', error);
+      throw new Error(`${error}`);
+    }
+  }
+
+  async #setCurrentLimit(value: number) {
+    this.log('setCurrentLimit', value);
+
+    try {
+      await this.alfenApi.apiLogin();
+      await this.alfenApi.apiSetCurrentLimit(value);
+      await this.alfenApi.apiLogout();
+    } catch (error) {
+      this.log('Error setting current limit:', error);
+      throw new Error(`${error}`);
+    }
+
+    return true;
   }
 };

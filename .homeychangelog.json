@@ -1,5 +1,8 @@
 {
   "1.0.0": {
     "en": "First version to support Alfen charger"
+  },
+  "1.0.1": {
+    "en": "Added more capabilities and added support to update settings with flow cards"
   }
 }
