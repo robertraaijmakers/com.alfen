@@ -410,7 +410,7 @@
           "id": "0",
           "title": {
             "en": "Plug and Charge",
-            "nl": "Inpluggen en laden"
+            "nl": "Inpluggen en Laden"
           }
         },
         {
@@ -423,7 +423,7 @@
       ],
       "getable": true,
       "setable": true,
-      "uiComponent": "picker",
+      "uiComponent": "sensor",
       "uiQuickAction": false,
       "icon": "/assets/icon.svg"
     },
@@ -482,8 +482,8 @@
     "greenshare": {
       "type": "number",
       "title": {
-        "en": "Green Share %",
-        "nl": "Groenestroom %"
+        "en": "Green Share",
+        "nl": "Aandeel Groen"
       },
       "units": "%",
       "getable": true,

@@ -50,18 +50,21 @@ module.exports = class MyDevice extends Homey.Device {
 
   async refreshDevice() {
     this.log('Refresh Device');
+    let result: { capabilityId: string; value: string | number | boolean }[] | null = null;
 
     try {
       await this.alfenApi.apiLogin();
-      const result = await this.alfenApi.apiGetActualValues();
-      await this.alfenApi.apiLogout();
-
-      // Parse result values
-      await this.updateCapabilities(result);
+      result = await this.alfenApi.apiGetActualValues();
     } catch (error) {
       this.log('Error refreshing device:', error);
-      throw new Error(`${error}`);
+    } finally {
+      await this.alfenApi.apiLogout();
     }
+
+    if (result == null) return;
+
+    // Parse result values
+    await this.updateCapabilities(result);
   }
 
   /**
@@ -196,10 +199,11 @@ module.exports = class MyDevice extends Homey.Device {
     try {
       await this.alfenApi.apiLogin();
       await this.alfenApi.apiSetChargeType(value);
-      await this.alfenApi.apiLogout();
     } catch (error) {
       this.log('Error setting charge type:', error);
       throw new Error(`${error}`);
+    } finally {
+      await this.alfenApi.apiLogout();
     }
   }
 
@@ -209,10 +213,11 @@ module.exports = class MyDevice extends Homey.Device {
     try {
       await this.alfenApi.apiLogin();
       await this.alfenApi.apiSetComfortChargeLevel(value);
-      await this.alfenApi.apiLogout();
     } catch (error) {
       this.log('Error setting comfort charge level:', error);
       throw new Error(`${error}`);
+    } finally {
+      await this.alfenApi.apiLogout();
     }
   }
 
@@ -222,10 +227,11 @@ module.exports = class MyDevice extends Homey.Device {
     try {
       await this.alfenApi.apiLogin();
       await this.alfenApi.apiSetGreenSharePercentage(value);
-      await this.alfenApi.apiLogout();
     } catch (error) {
       this.log('Error setting green share percentage:', error);
       throw new Error(`${error}`);
+    } finally {
+      await this.alfenApi.apiLogout();
     }
   }
 
@@ -235,10 +241,11 @@ module.exports = class MyDevice extends Homey.Device {
     try {
       await this.alfenApi.apiLogin();
       await this.alfenApi.apiSetAuthMode(value);
-      await this.alfenApi.apiLogout();
     } catch (error) {
       this.log('Error setting auth mode:', error);
       throw new Error(`${error}`);
+    } finally {
+      await this.alfenApi.apiLogout();
     }
   }
 
@@ -248,10 +255,11 @@ module.exports = class MyDevice extends Homey.Device {
     try {
       await this.alfenApi.apiLogin();
       await this.alfenApi.apiSetCurrentLimit(value);
-      await this.alfenApi.apiLogout();
     } catch (error) {
       this.log('Error setting current limit:', error);
       throw new Error(`${error}`);
+    } finally {
+      await this.alfenApi.apiLogout();
     }
 
     return true;

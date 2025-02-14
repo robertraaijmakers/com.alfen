@@ -5,21 +5,21 @@ import { HttpsPromiseOptions, HttpsPromiseResponse, InfoResponse, PropertyRespon
 import https from 'https';
 
 const energyMeterCapabilitiesMap: { [key: string]: string } = {
-  '2062_0': 'measure_current.stationlimit',
+  '2062_0': 'measure_current.stationlimit', // Max. station limit
   '2126_0': 'authmode',
-  '2129_0': 'measure_current.limit',
-  '2201_0': 'measure_temperature',
-  '2221_3': 'measure_voltage.l1',
-  '2221_4': 'measure_voltage.l2',
-  '2221_5': 'measure_voltage.l3',
-  '2221_10': 'measure_current.l1',
-  '2221_11': 'measure_current.l2',
-  '2221_12': 'measure_current.l3',
-  '2221_16': 'measure_power',
-  '2221_19': 'measure_power.l1',
-  '2221_20': 'measure_power.l2',
-  '2221_21': 'measure_power.l3',
-  '2221_22': 'meter_power',
+  '2129_0': 'measure_current.limit', // Custom Set Limit (A)
+  '2201_0': 'measure_temperature', // °C
+  '2221_3': 'measure_voltage.l1', // A
+  '2221_4': 'measure_voltage.l2', // A
+  '2221_5': 'measure_voltage.l3', // A
+  '2221_A': 'measure_current.l1', // V
+  '2221_B': 'measure_current.l2', // V
+  '2221_C': 'measure_current.l3', // V
+  '2221_13': 'measure_power.l1', // W
+  '2221_14': 'measure_power.l2', // W
+  '2221_15': 'measure_power.l3', // W
+  '2221_16': 'measure_power', // W (Power / Vermogen)
+  '2221_22': 'meter_power', // kWh (Energy / Energie)
   '2501_2': 'operatingmode',
   '3280_1': 'chargetype',
   '3280_2': 'greenshare',
@@ -48,8 +48,14 @@ export class AlfenApi {
   }
 
   async apiLogin() {
+    this.#log(`Starting login process: ${this.#retrieving}`);
+
+    // Try handling multiple requests at the same time
+    if (this.#agent == null) this.#retrieving = 0;
     this.#retrieving += 1;
     if (this.#agent != null) return; // Already running another process and already loggedin
+
+    this.#log(`Creating new agent and start login: ${this.#retrieving}`);
 
     this.#agent = new https.Agent({
       keepAlive: true, // Enable connection keep-alive
@@ -83,15 +89,18 @@ export class AlfenApi {
       // Handle the response
       this.#log('Login successful:', response.body);
     } catch (error) {
-      this.#log('Login failed:', error);
       throw new Error(`Login failed: ${error}`);
     }
   }
 
   async apiLogout() {
+    this.#log(`Starting logout process: ${this.#retrieving}`);
+
     this.#retrieving -= 1;
     if (this.#retrieving > 0) return;
     if (this.#retrieving < 0) this.#retrieving = 0;
+
+    this.#log(`Logout procedure, logout & clean-up agent.`);
 
     // Define the options for the HTTPS request
     const options = {
@@ -115,7 +124,7 @@ export class AlfenApi {
     } catch (error) {
       this.#agent = null;
       this.#log('Logout failed:', error);
-      throw new Error(`Logout failed: ${error}`);
+      //throw new Error(`Logout failed: ${error}`);
     }
   }
 
@@ -141,14 +150,13 @@ export class AlfenApi {
       this.#log('Info retrieved successfully:', response.body);
       return <InfoResponse>response.body;
     } catch (error) {
-      this.#log('Request failed:', error);
       throw new Error(`Request failed: ${error}`);
     }
   }
 
   async apiGetActualValues() {
     // Define the 'ids' parameter
-    const ids = '2056_0,2060_0,2062_0,2126_0,2129_0,2201_0,2221_3,2221_4,2221_5,2221_10,2221_11,2221_12,2221_13,2221_14,2221_15,221_16,2221_22,2501_2,3280_1,3280_2,3280_3';
+    const ids = '2056_0,2060_0,2062_0,2126_0,2129_0,2201_0,2221_3,2221_4,2221_5,2221_0A,2221_0B,2221_0C,2221_13,2221_14,2221_15,2221_16,2221_22,2501_2,3280_1,3280_2,3280_3';
 
     // Define the options for the HTTPS request (no body, just headers)
     const options: HttpsPromiseOptions = {
@@ -168,8 +176,6 @@ export class AlfenApi {
       const response = await this.#httpsPromise(options);
 
       // Handle the response
-      this.#log('Properties retrieved successfully:', response.body);
-
       const bodyResult = <PropertyResponseBody>response.body;
       const result = bodyResult.properties;
       const capabilitiesData: Array<{
@@ -179,6 +185,8 @@ export class AlfenApi {
 
       for (const prop of result) {
         const capabilityId = energyMeterCapabilitiesMap[prop.id];
+
+        this.#log(`Property: ${prop.id}: ${prop.value}, Type: ${prop.type}, Category: ${prop.cat}, Access: ${prop.access}, Capability: ${capabilityId ?? 'Unknown'}`);
 
         if (capabilityId) {
           let value: string | number | boolean | null = null;
@@ -194,9 +202,9 @@ export class AlfenApi {
               value = Math.round(prop.value); // rounding values, no decimal
               break;
             case '2201_0': // Temperature
-            case '2221_10': // Current L1
-            case '2221_11': // Current L2
-            case '2221_12': // Current L3
+            case '2221_A': // Current L1
+            case '2221_B': // Current L2
+            case '2221_C': // Current L3
             case '2221_13': // Power L1 (watts)
             case '2221_14': // Power L2 (watts)
             case '2221_15': // Power L3 (watts)
@@ -241,7 +249,6 @@ export class AlfenApi {
     try {
       await this.#apiSetProperty(body);
     } catch (e) {
-      this.#log('Error setting current limit:', e);
       throw new Error(`Error setting current limit: ${e}`);
     }
 
@@ -260,7 +267,6 @@ export class AlfenApi {
     try {
       await this.#apiSetProperty(body);
     } catch (e) {
-      this.#log('Error setting charge type:', e);
       throw new Error(`Error setting charge type: ${e}`);
     }
 
@@ -281,7 +287,6 @@ export class AlfenApi {
     try {
       await this.#apiSetProperty(body);
     } catch (e) {
-      this.#log('Error setting green share percentage:', e);
       throw new Error(`Error setting green share percentage: ${e}`);
     }
 
@@ -302,7 +307,6 @@ export class AlfenApi {
     try {
       await this.#apiSetProperty(body);
     } catch (e) {
-      this.#log('Error setting comfort charge level:', e);
       throw new Error(`Error setting comfort charge level: ${e}`);
     }
 
@@ -321,7 +325,6 @@ export class AlfenApi {
     try {
       await this.#apiSetProperty(body);
     } catch (e) {
-      this.#log('Error setting auth mode:', e);
       throw new Error(`Error setting auth mode: ${e}`);
     }
 
@@ -356,7 +359,6 @@ export class AlfenApi {
       this.#log('Start reboot:', response.body);
       return true;
     } catch (error) {
-      this.#log('Reboot failed:', error);
       throw new Error(`Reboot failed: ${error}`);
     }
   }
@@ -383,7 +385,6 @@ export class AlfenApi {
       // Handle the response
       this.#log('Written property:', response.body);
     } catch (error) {
-      this.#log('Property write failed:', error);
       throw new Error(`Property write failed: ${error}`);
     }
   }
@@ -402,7 +403,6 @@ export class AlfenApi {
           }
 
           let resBody = Buffer.concat(chunks).toString();
-          this.#log(resBody);
 
           switch (res.headers['content-type']) {
             case 'application/json':

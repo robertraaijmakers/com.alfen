@@ -1,8 +1,8 @@
 {
     "type": "number",
     "title": { 
-        "en": "Green Share %",
-        "nl": "Groenestroom %"
+        "en": "Green Share",
+        "nl": "Aandeel Groen"
     },
     "units": "%",
     "getable": true,
