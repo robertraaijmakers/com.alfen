@@ -238,7 +238,7 @@ export class AlfenApi {
       const voltage = capabilitiesData.find((x) => x.capabilityId === `measure_voltage.${phase}`)?.value;
       const current = capabilitiesData.find((x) => x.capabilityId === `measure_current.${phase}`)?.value;
       if (voltage && current && !isNaN(Number(voltage)) && !isNaN(Number(current))) {
-        capabilitiesData.push({ capabilityId: `measure_power.${phase}`, value: Math.round(Number(voltage) * Number(current)) });
+        capabilitiesData.push({ capabilityId: `measure_power.${phase}`, value: Math.round(Number(voltage) * Number(current) * 10) / 10 });
       } else {
         capabilitiesData.push({ capabilityId: `measure_power.${phase}`, value: 0 });
       }
