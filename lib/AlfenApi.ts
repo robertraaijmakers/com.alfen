@@ -15,9 +15,9 @@ const energyMeterCapabilitiesMap: { [key: string]: string } = {
   '2221_A': 'measure_current.l1', // V
   '2221_B': 'measure_current.l2', // V
   '2221_C': 'measure_current.l3', // V
-  '2221_13': 'measure_power.l1', // W
-  '2221_14': 'measure_power.l2', // W
-  '2221_15': 'measure_power.l3', // W
+  //'2221_13': 'measure_power.l1', // W
+  //'2221_14': 'measure_power.l2', // W
+  //'2221_15': 'measure_power.l3', // W
   '2221_16': 'measure_power', // W (Power / Vermogen)
   '2221_22': 'meter_power', // kWh (Energy / Energie)
   '2501_2': 'operatingmode',
@@ -171,68 +171,80 @@ export class AlfenApi {
       rejectUnauthorized: false, // Disable SSL certificate validation if needed
     };
 
+    let bodyResult: PropertyResponseBody;
+    const capabilitiesData: Array<{
+      capabilityId: string;
+      value: number | string | boolean;
+    }> = [];
+
     try {
       // Make the HTTPS request using the httpsPromise method
       const response = await this.#httpsPromise(options);
-
-      // Handle the response
-      const bodyResult = <PropertyResponseBody>response.body;
-      const result = bodyResult.properties;
-      const capabilitiesData: Array<{
-        capabilityId: string;
-        value: number | string | boolean;
-      }> = [];
-
-      for (const prop of result) {
-        const capabilityId = energyMeterCapabilitiesMap[prop.id];
-
-        this.#log(`Property: ${prop.id}: ${prop.value}, Type: ${prop.type}, Category: ${prop.cat}, Access: ${prop.access}, Capability: ${capabilityId ?? 'Unknown'}`);
-
-        if (capabilityId) {
-          let value: string | number | boolean | null = null;
-
-          // Handle specific rounding or transformation for certain properties
-          switch (prop.id) {
-            case '2501_2':
-              value = this.#statusToString(prop.value);
-              break;
-            case '2221_3': // Voltage L1
-            case '2221_4': // Voltage L2
-            case '2221_5': // Voltage L3
-              value = Math.round(prop.value); // rounding values, no decimal
-              break;
-            case '2201_0': // Temperature
-            case '2221_A': // Current L1
-            case '2221_B': // Current L2
-            case '2221_C': // Current L3
-            case '2221_13': // Power L1 (watts)
-            case '2221_14': // Power L2 (watts)
-            case '2221_15': // Power L3 (watts)
-            case '2221_16': // Power (watts)
-              value = Math.round(prop.value * 10) / 10; // rounding values, one decimal
-              break;
-            case '2221_22': // Total energy
-              value = Math.round(prop.value / 10) / 100; // rounding values, 2 decimal (but needs to be devided by 1000)
-              break;
-            case '2126_0': // Auth mode
-            case '3280_1': // Charge type
-              value = prop.value.toString();
-              break;
-            default:
-              value = prop.value;
-              break;
-          }
-
-          // Collect the mapped data
-          capabilitiesData.push({ capabilityId, value });
-        }
-      }
-
-      return capabilitiesData;
+      bodyResult = <PropertyResponseBody>response.body;
     } catch (error) {
       this.#log('Request failed:', error);
       throw new Error(`Request failed: ${error}`);
     }
+
+    if (bodyResult === undefined) return capabilitiesData;
+
+    // Handle the response
+    const result = bodyResult.properties;
+
+    for (const prop of result) {
+      const capabilityId = energyMeterCapabilitiesMap[prop.id];
+
+      this.#log(`Property: ${prop.id}: ${prop.value}, Type: ${prop.type}, Category: ${prop.cat}, Access: ${prop.access}, Capability: ${capabilityId ?? 'Unknown'}`);
+
+      if (capabilityId) {
+        let value: string | number | boolean | null = null;
+
+        // Handle specific rounding or transformation for certain properties
+        switch (prop.id) {
+          case '2501_2':
+            value = this.#statusToString(prop.value);
+            break;
+          case '2221_3': // Voltage L1
+          case '2221_4': // Voltage L2
+          case '2221_5': // Voltage L3
+            value = Math.round(prop.value); // rounding values, no decimal
+            break;
+          case '2201_0': // Temperature
+          case '2221_A': // Current L1
+          case '2221_B': // Current L2
+          case '2221_C': // Current L3
+          case '2221_16': // Power (watts)
+            value = Math.round(prop.value * 10) / 10; // rounding values, one decimal
+            break;
+          case '2221_22': // Total energy
+            value = Math.round(prop.value / 10) / 100; // rounding values, 2 decimal (but needs to be devided by 1000)
+            break;
+          case '2126_0': // Auth mode
+          case '3280_1': // Charge type
+            value = prop.value.toString();
+            break;
+          default:
+            value = prop.value;
+            break;
+        }
+
+        // Collect the mapped data
+        capabilitiesData.push({ capabilityId, value });
+      }
+    }
+
+    // Calculate power (Volt * Ampere = Watt) for L1, L2, and L3
+    ['l1', 'l2', 'l3'].forEach((phase) => {
+      const voltage = capabilitiesData.find((x) => x.capabilityId === `measure_voltage.${phase}`)?.value;
+      const current = capabilitiesData.find((x) => x.capabilityId === `measure_current.${phase}`)?.value;
+      if (voltage && current && !isNaN(Number(voltage)) && !isNaN(Number(current))) {
+        capabilitiesData.push({ capabilityId: `measure_power.${phase}`, value: Math.round(Number(voltage) * Number(current)) });
+      } else {
+        capabilitiesData.push({ capabilityId: `measure_power.${phase}`, value: 0 });
+      }
+    });
+
+    return capabilitiesData;
   }
 
   async apiSetCurrentLimit(currentLimit: number) {

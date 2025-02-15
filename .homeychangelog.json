@@ -1,8 +1,14 @@
 {
   "1.0.0": {
-    "en": "First version to support Alfen charger"
+    "en": "First version to support Alfen charger."
   },
   "1.0.1": {
-    "en": "Added more capabilities and added support to update settings with flow cards"
+    "en": "Added more capabilities and added support to update settings with flow cards."
+  },
+  "1.0.2": {
+    "en": "Updated error handling. Moved some capabilities to sensors to prevent accidental changes."
+  },
+  "1.0.3": {
+    "en": "New version, better error handling, supporting more capabilities and updating settings with flow cards."
   }
 }
