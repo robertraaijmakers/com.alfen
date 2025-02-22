@@ -10,6 +10,8 @@ module.exports = class MyDevice extends Homey.Device {
   apiUrl: string = 'api';
   alfenApi!: AlfenApi;
 
+  currentInterval: NodeJS.Timeout | null = null;
+
   /**
    * onInit is called when the device is initialized.
    */
@@ -43,8 +45,12 @@ module.exports = class MyDevice extends Homey.Device {
     // Register flow card listeners
     this.#registerFlowCardListeners();
 
-    // Set interval and refresh device data
-    this.homey.setInterval(this.refreshDevice.bind(this), this.refreshRate * 1000);
+    // Set (and clear) interval and refresh device data
+    if (this.currentInterval) clearInterval(this.currentInterval);
+    this.currentInterval = this.homey.setInterval(() => {
+      this.refreshDevice();
+    }, this.refreshRate * 1000);
+
     await this.refreshDevice();
   }
 

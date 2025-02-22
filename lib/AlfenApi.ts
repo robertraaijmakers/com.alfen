@@ -51,6 +51,11 @@ export class AlfenApi {
     this.#log(`Starting login process: ${this.#retrieving}`);
 
     // Try handling multiple requests at the same time
+    if (this.#retrieving > 10) {
+      this.#retrieving = 1;
+      await this.apiLogout();
+    }
+
     if (this.#agent == null) this.#retrieving = 0;
     this.#retrieving += 1;
     if (this.#agent != null) return; // Already running another process and already loggedin
@@ -124,7 +129,6 @@ export class AlfenApi {
     } catch (error) {
       this.#agent = null;
       this.#log('Logout failed:', error);
-      //throw new Error(`Logout failed: ${error}`);
     }
   }
 
