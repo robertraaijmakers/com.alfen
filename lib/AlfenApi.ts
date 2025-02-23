@@ -92,8 +92,12 @@ export class AlfenApi {
       const response = await this.#httpsPromise({ ...options, body });
 
       // Handle the response
-      this.#log('Login successful:', response.body);
+      this.#log('Login successful:', response);
     } catch (error) {
+      this.#agent = null;
+      this.#retrieving = 0;
+
+      this.#log('Login failed:', error);
       throw new Error(`Login failed: ${error}`);
     }
   }
@@ -122,13 +126,18 @@ export class AlfenApi {
     try {
       // Make the HTTPS request using the httpsPromise method
       const response = await this.#httpsPromise(options);
+      this.#log('Logout successful: ', response);
+
+      this.#agent?.destroy();
       this.#agent = null;
 
       // Handle the response
-      this.#log('Logout successful:', response.body);
+      this.#log('Agent destroyed');
     } catch (error) {
-      this.#agent = null;
       this.#log('Logout failed:', error);
+      this.#agent?.destroy();
+    } finally {
+      this.#agent = null;
     }
   }
 

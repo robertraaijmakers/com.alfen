@@ -3,6 +3,8 @@
   "compilerOptions": {
     "allowJs": true,
     "outDir": ".homeybuild/",
+    "target": "es6",
+    "lib": ["es6"],
     "strict": true,
     "esModuleInterop": true
   }
