@@ -64,10 +64,10 @@ export class AlfenApi {
     this.#log(`Creating new agent and start login: ${this.#retrieving}`);
 
     this.#agent = new Pool(`https://${this.#ip}`, {
-      connections: 1, // Adjust based on load
-      pipelining: 1, // Enables request pipelining
-      keepAliveTimeout: 2,
-      keepAliveMaxTimeout: 20,
+      connections: 1,
+      pipelining: 1,
+      keepAliveTimeout: 2000,
+      keepAliveMaxTimeout: 10000,
       connect: { rejectUnauthorized: false },
     });
 
