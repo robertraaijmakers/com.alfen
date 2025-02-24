@@ -67,7 +67,7 @@ export class AlfenApi {
       connections: 1,
       pipelining: 1,
       keepAliveTimeout: 2000,
-      keepAliveMaxTimeout: 10000,
+      keepAliveMaxTimeout: 5000,
       connect: { rejectUnauthorized: false },
     });
 
