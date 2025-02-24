@@ -83,6 +83,7 @@ export class AlfenApi {
         'Content-Length': Buffer.byteLength(body).toString(),
         Connection: 'keep-alive',
       },
+      timeout: 1000,
       agent: this.#agent,
       rejectUnauthorized: false, // Disable SSL certificate validation if needed
     };
@@ -119,6 +120,7 @@ export class AlfenApi {
       headers: {
         'Content-Type': this.#apiHeader,
       },
+      timeout: 1000,
       agent: this.#agent!,
       rejectUnauthorized: false, // Disable SSL certificate validation if needed
     };
@@ -151,6 +153,7 @@ export class AlfenApi {
         'Content-Type': this.#apiHeader,
         Connection: 'keep-alive',
       },
+      timeout: 1000,
       agent: this.#agent!,
       rejectUnauthorized: false, // Disable SSL certificate validation if needed
     };
@@ -180,6 +183,7 @@ export class AlfenApi {
         'Content-Type': this.#apiHeader,
         Connection: 'keep-alive',
       },
+      timeout: 1000,
       agent: this.#agent!,
       rejectUnauthorized: false, // Disable SSL certificate validation if needed
     };
@@ -372,6 +376,7 @@ export class AlfenApi {
         'Content-Length': Buffer.byteLength(body).toString(),
         Connection: 'keep-alive',
       },
+      timeout: 1000,
       agent: this.#agent!,
       rejectUnauthorized: false, // Disable SSL certificate validation if needed
     };
@@ -399,6 +404,7 @@ export class AlfenApi {
         'Content-Length': Buffer.byteLength(body).toString(),
         Connection: 'keep-alive',
       },
+      timeout: 1000,
       agent: this.#agent!,
       rejectUnauthorized: false, // Disable SSL certificate validation if needed
     };
@@ -418,6 +424,7 @@ export class AlfenApi {
     const { body, ...requestOptions } = options;
 
     return new Promise((resolve, reject) => {
+
       const req = https.request(requestOptions, (res) => {
         const chunks: Uint8Array[] = [];
         res.on('data', (data: Uint8Array) => chunks.push(data));
@@ -451,10 +458,20 @@ export class AlfenApi {
           resolve({ body: resBody, headers: res.headers });
         });
       });
-      req.on('error', reject);
+
+      req.on('timeout', () => {
+        req.abort();
+        reject(new Error(`Request timed out`));
+      });
+
+      req.on('error', error => {
+        reject(new Error(`Request error: ${error}`));
+      });
+
       if (body) {
         req.write(body);
       }
+
       req.end();
     });
   }

@@ -21,6 +21,7 @@ export interface HttpsPromiseOptions {
   path: string;
   method: string;
   headers: { [key: string]: string };
+  timeout: number;
   agent: https.Agent;
   rejectUnauthorized?: boolean; // Optional for SSL/TLS validation
 }
