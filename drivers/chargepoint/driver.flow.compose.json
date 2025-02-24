@@ -1,4 +1,13 @@
 {
+    "triggers": [
+        {
+            "id": "operatingmode_changed",
+            "title": {
+                "en": "Status changed",
+                "nl": "Status gewijzigd"
+            }
+        }
+    ],
     "actions": [
         {
             "id": "greenshare",
