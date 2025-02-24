@@ -1,8 +1,9 @@
 'use strict';
 
+import { IncomingHttpHeaders } from 'undici/types/header';
 import { HttpsPromiseOptions, HttpsPromiseResponse, InfoResponse, PropertyResponseBody } from '../localTypes/types';
 
-import https from 'https';
+import { Pool } from 'undici';
 
 const energyMeterCapabilitiesMap: { [key: string]: string } = {
   '2062_0': 'measure_current.stationlimit', // Max. station limit
@@ -26,11 +27,11 @@ const energyMeterCapabilitiesMap: { [key: string]: string } = {
   '3280_3': 'comfortchargelevel',
 };
 
-export class AlfenApi {
-  #apiHeader: string = 'alfen/json; charset=utf-8';
-  #apiUrl: string = 'api';
+const apiHeader: string = 'alfen/json; charset=utf-8';
+const apiUrl: string = 'api';
 
-  #agent: https.Agent | null = null;
+export class AlfenApi {
+  #agent: Pool | null = null;
   #retrieving: number = 0;
 
   #ip: string;
@@ -62,10 +63,17 @@ export class AlfenApi {
 
     this.#log(`Creating new agent and start login: ${this.#retrieving}`);
 
-    this.#agent = new https.Agent({
-      keepAlive: true, // Enable connection keep-alive
-      maxSockets: 1, // Optionally limit the number of sockets (default is Infinity)
+    this.#agent = new Pool(`https://${this.#ip}`, {
+      connections: 1, // Adjust based on load
+      pipelining: 1, // Enables request pipelining
+      keepAliveTimeout: 2,
+      keepAliveMaxTimeout: 20,
+      connect: { rejectUnauthorized: false },
     });
+
+    if (this.#agent === null) {
+      this.#log(`Creating new agent failed.`);
+    }
 
     // Define the request body
     const body = JSON.stringify({
@@ -75,17 +83,12 @@ export class AlfenApi {
 
     // Define the options for the HTTPS request
     const options = {
-      hostname: this.#ip,
-      path: `/${this.#apiUrl}/login`,
+      path: `/${apiUrl}/login`,
       method: 'POST',
-      headers: {
-        'Content-Type': this.#apiHeader,
-        'Content-Length': Buffer.byteLength(body).toString(),
-        Connection: 'keep-alive',
-      },
-      agent: this.#agent,
-      rejectUnauthorized: false, // Disable SSL certificate validation if needed
-    };
+      headers: {},
+    } as HttpsPromiseOptions;
+
+    this.#log(`Set body & options`);
 
     try {
       // Make the HTTPS request using the httpsPromise method
@@ -113,15 +116,10 @@ export class AlfenApi {
 
     // Define the options for the HTTPS request
     const options = {
-      hostname: this.#ip,
-      path: `/${this.#apiUrl}/logout`,
+      path: `/${apiUrl}/logout`,
       method: 'POST',
-      headers: {
-        'Content-Type': this.#apiHeader,
-      },
-      agent: this.#agent!,
-      rejectUnauthorized: false, // Disable SSL certificate validation if needed
-    };
+      headers: {} as IncomingHttpHeaders,
+    } as HttpsPromiseOptions;
 
     try {
       // Make the HTTPS request using the httpsPromise method
@@ -144,16 +142,10 @@ export class AlfenApi {
   async apiGetChargerDetails() {
     // Define the options for the HTTPS request (no body, just headers)
     const options: HttpsPromiseOptions = {
-      hostname: this.#ip,
-      path: `/${this.#apiUrl}/info`,
+      path: `/${apiUrl}/info`,
       method: 'GET',
-      headers: {
-        'Content-Type': this.#apiHeader,
-        Connection: 'keep-alive',
-      },
-      agent: this.#agent!,
-      rejectUnauthorized: false, // Disable SSL certificate validation if needed
-    };
+      headers: {},
+    } as HttpsPromiseOptions;
 
     try {
       // Make the HTTPS request using the httpsPromise method
@@ -173,16 +165,10 @@ export class AlfenApi {
 
     // Define the options for the HTTPS request (no body, just headers)
     const options: HttpsPromiseOptions = {
-      hostname: this.#ip,
-      path: `/${this.#apiUrl}/prop?ids=${ids}`, // Add the 'ids' parameter to the path
+      path: `/${apiUrl}/prop?ids=${ids}`, // Add the 'ids' parameter to the path
       method: 'GET',
-      headers: {
-        'Content-Type': this.#apiHeader,
-        Connection: 'keep-alive',
-      },
-      agent: this.#agent!,
-      rejectUnauthorized: false, // Disable SSL certificate validation if needed
-    };
+      headers: {},
+    } as HttpsPromiseOptions;
 
     let bodyResult: PropertyResponseBody;
     const capabilitiesData: Array<{
@@ -364,17 +350,10 @@ export class AlfenApi {
 
     // Define the options for the HTTPS request
     const options = {
-      hostname: this.#ip,
-      path: `/${this.#apiUrl}/cmd`,
+      path: `/${apiUrl}/cmd`,
       method: 'POST',
-      headers: {
-        'Content-Type': this.#apiHeader,
-        'Content-Length': Buffer.byteLength(body).toString(),
-        Connection: 'keep-alive',
-      },
-      agent: this.#agent!,
-      rejectUnauthorized: false, // Disable SSL certificate validation if needed
-    };
+      headers: {},
+    } as HttpsPromiseOptions;
 
     try {
       // Make the HTTPS request using the httpsPromise method
@@ -391,17 +370,10 @@ export class AlfenApi {
   async #apiSetProperty(body: string) {
     // Define the options for the HTTPS request
     const options = {
-      hostname: this.#ip,
-      path: `/${this.#apiUrl}/prop`,
+      path: `/${apiUrl}/prop`,
       method: 'POST',
-      headers: {
-        'Content-Type': this.#apiHeader,
-        'Content-Length': Buffer.byteLength(body).toString(),
-        Connection: 'keep-alive',
-      },
-      agent: this.#agent!,
-      rejectUnauthorized: false, // Disable SSL certificate validation if needed
-    };
+      headers: {},
+    } as HttpsPromiseOptions;
 
     try {
       // Make the HTTPS request using the httpsPromise method
@@ -417,46 +389,38 @@ export class AlfenApi {
   async #httpsPromise(options: HttpsPromiseOptions): Promise<HttpsPromiseResponse> {
     const { body, ...requestOptions } = options;
 
-    return new Promise((resolve, reject) => {
-      const req = https.request(requestOptions, (res) => {
-        const chunks: Uint8Array[] = [];
-        res.on('data', (data: Uint8Array) => chunks.push(data));
-        res.on('end', () => {
-          if (res.statusCode && res.statusCode !== 200) {
-            reject(new Error(`Request failed with status ${res.statusCode}`));
-            return;
-          }
+    if (body && body.length > 0) {
+      requestOptions.headers = { 'Content-Length': Buffer.byteLength(body).toString(), ...requestOptions.headers };
+    }
 
-          let resBody = Buffer.concat(chunks).toString();
+    if (requestOptions.path.indexOf('logout') <= 0) {
+      requestOptions.headers = { Connection: 'keep-alive', ...requestOptions.headers };
+    }
 
-          switch (res.headers['content-type']) {
-            case 'application/json':
-            case 'alfen/json':
-              try {
-                resBody = JSON.parse(resBody);
-              } catch (error) {
-                reject(new Error(`Exception parsing JSON: ${error}`));
-                return;
-              }
-              break;
-            default:
-              try {
-                resBody = JSON.parse(resBody);
-              } catch (error) {
-                resBody = resBody.toString();
-              }
-              break;
-          }
-
-          resolve({ body: resBody, headers: res.headers });
-        });
-      });
-      req.on('error', reject);
-      if (body) {
-        req.write(body);
-      }
-      req.end();
+    const res = await this.#agent!.request({
+      path: requestOptions.path,
+      method: requestOptions.method,
+      headers: {
+        'User-Agent': 'undici',
+        'Content-Type': apiHeader,
+        ...requestOptions.headers,
+      },
+      body: body,
     });
+
+    if (!res.statusCode || res.statusCode !== 200) {
+      throw new Error(`Request failed with status: ${res.statusCode}`);
+    }
+
+    const rawBody = await res.body.text(); // Read body once as text
+    let parsedBody;
+    try {
+      parsedBody = JSON.parse(rawBody); // Try parsing as JSON
+    } catch {
+      parsedBody = rawBody; // Fallback to text if JSON parsing fails
+    }
+
+    return { body: parsedBody, headers: res.headers } as HttpsPromiseResponse;
   }
 
   #statusToString(statusKey: number): string {
@@ -507,21 +471,5 @@ export class AlfenApi {
     };
 
     return statusMapping[statusKey] ?? 'Unknown';
-  }
-
-  #statusToBool(statusKey: number): boolean {
-    const statusMapping: Record<number, boolean> = {
-      4: false,
-      7: true,
-      10: true,
-      11: true,
-      17: true,
-      26: true,
-      34: false,
-      36: true,
-      41: true,
-    };
-
-    return statusMapping[statusKey] ?? false;
   }
 }

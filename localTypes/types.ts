@@ -1,7 +1,6 @@
 'use strict';
 
-import https from 'https';
-import { IncomingHttpHeaders } from 'http';
+import { IncomingHttpHeaders } from 'undici/types/header';
 
 export interface PairData {
   ip: string;
@@ -17,12 +16,10 @@ export interface DeviceSettings {
 
 export interface HttpsPromiseOptions {
   body?: string | Buffer;
-  hostname: string;
   path: string;
   method: string;
   headers: { [key: string]: string };
-  agent: https.Agent;
-  rejectUnauthorized?: boolean; // Optional for SSL/TLS validation
+  keepAlive: boolean;
 }
 
 export interface HttpsPromiseResponse {
