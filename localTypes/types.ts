@@ -17,7 +17,7 @@ export interface DeviceSettings {
 export interface HttpsPromiseOptions {
   body?: string | Buffer;
   path: string;
-  method: string;
+  method: 'POST' | 'GET';
   headers: { [key: string]: string };
   keepAlive: boolean;
 }

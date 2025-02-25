@@ -11,7 +11,7 @@
   "1.0.3": {
     "en": "New version, better error handling, supporting more capabilities and updating settings with flow cards."
   },
-  "1.0.7": {
+  "1.0.8": {
     "en": "Added possible fix for an issue that the login got stuck and the app crashes after a while, added new trigger (status updated)."
   }
 }
