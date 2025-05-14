@@ -7,6 +7,8 @@
   "capabilities": [
     "operatingmode",
     "measure_power",
+    "evcharger_charging",
+    "evcharger_charging_state",
     "meter_power",
     "measure_temperature",
     "measure_current.l1",
@@ -25,6 +27,18 @@
     "chargetype",
     "authmode"
   ],
+  "energy": {
+    "evCharger": true,
+    "meterPowerImportedCapability": "meter_power"
+  },
+  "capabilitiesOptions": {
+    "meter_power.charged": {
+      "title": { "en": "Charged Energy" }
+    },
+    "meter_power.discharged": {
+      "title": { "en": "Discharged Energy" }
+    }
+  },
   "capabilitiesOptions": {
     "measure_current.l1": {
       "title": {

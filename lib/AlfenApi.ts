@@ -25,6 +25,8 @@ const energyMeterCapabilitiesMap: { [key: string]: string } = {
   '3280_1': 'chargetype',
   '3280_2': 'greenshare',
   '3280_3': 'comfortchargelevel',
+  '9999_0': 'evcharger_charging',
+  '9999_1': 'evcharger_charging_state',
 };
 
 const apiHeader: string = 'alfen/json; charset=utf-8';
@@ -202,6 +204,10 @@ export class AlfenApi {
         switch (prop.id) {
           case '2501_2':
             value = this.#statusToString(prop.value);
+            const enumString: string = this.#statusToEnum(prop.value);
+            capabilitiesData.push({ capabilityId: 'evcharger_charging_state', value : enumString });
+            const isCharging: boolean = (enumString == 'plugged_in_charging');
+            capabilitiesData.push({ capabilityId: 'evcharger_charging', value : isCharging });
             break;
           case '2221_3': // Voltage L1
           case '2221_4': // Voltage L2
@@ -471,5 +477,55 @@ export class AlfenApi {
     };
 
     return statusMapping[statusKey] ?? 'Unknown';
+  }
+
+  #statusToEnum(statusKey: number): string {
+    const statusMapping: Record<number, string> = {
+      0: 'plugged_out',
+      1: 'plugged_out',
+      2: 'plugged_out',
+      3: 'plugged_out',
+      4: 'plugged_out',
+      5: 'plugged_out',
+      6: 'plugged_out',
+      7: 'plugged_in',
+      8: 'plugged_in',
+      9: 'plugged_in',
+      10: 'plugged_in',
+      11: 'plugged_in_charging',
+      12: 'plugged_in_charging',
+      13: 'plugged_in_paused',
+      14: 'plugged_in_paused',
+      15: 'plugged_in_paused',
+      16: 'plugged_in_paused',
+      17: 'plugged_in_paused',
+      18: 'plugged_in_paused',
+      19: 'plugged_in_paused',
+      20: 'plugged_in_paused',
+      21: 'plugged_in_paused',
+      22: 'plugged_in_paused',
+      23: 'plugged_in_paused',
+      24: 'plugged_in_paused',
+      25: 'plugged_in_paused',
+      26: 'plugged_in_paused',
+      27: 'plugged_in_paused',
+      28: 'plugged_in_paused',
+      29: 'plugged_in_paused',
+      30: 'plugged_in_paused',
+      31: 'plugged_in_paused',
+      32: 'plugged_in_paused',
+      33: 'plugged_in_paused',
+      34: 'plugged_in_paused',
+      35: 'plugged_in_charging',
+      36: 'plugged_in_charging',
+      38: 'plugged_in_paused',
+      39: 'plugged_in_paused',
+      40: 'plugged_in_paused',
+      41: 'plugged_in_charging',
+      42: 'plugged_in_paused',
+      43: 'plugged_in_charging',
+    };
+
+    return statusMapping[statusKey] ?? 'plugged_out';
   }
 }

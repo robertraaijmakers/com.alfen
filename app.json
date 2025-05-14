@@ -2,7 +2,7 @@
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.alfen",
   "version": "1.0.8",
-  "compatibility": ">=12.0.0",
+  "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
     "local"
@@ -262,6 +262,8 @@
       "capabilities": [
         "operatingmode",
         "measure_power",
+        "evcharger_charging",
+        "evcharger_charging_state",
         "meter_power",
         "measure_temperature",
         "measure_current.l1",
@@ -280,6 +282,10 @@
         "chargetype",
         "authmode"
       ],
+      "energy": {
+        "evCharger": true,
+        "meterPowerImportedCapability": "meter_power"
+      },
       "capabilitiesOptions": {
         "measure_current.l1": {
           "title": {

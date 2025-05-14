@@ -14,6 +14,12 @@ export interface DeviceSettings {
   password: string;
 }
 
+export interface EnergySettings {
+  evCharger: boolean;
+  meterPowerImportedCapability: string;
+  meterPowerExportedCapability: string;
+}
+
 export interface HttpsPromiseOptions {
   body?: string | Buffer;
   path: string;
