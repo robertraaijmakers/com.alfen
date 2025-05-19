@@ -2,6 +2,7 @@
 
 import Homey from 'homey';
 import { DeviceSettings } from '../../localTypes/types';
+import { EnergySettings } from '../../localTypes/types';
 import { AlfenApi } from '../../lib/AlfenApi';
 
 module.exports = class MyDevice extends Homey.Device {
@@ -17,6 +18,15 @@ module.exports = class MyDevice extends Homey.Device {
    */
   async onInit() {
     this.log('MyDevice has been initialized');
+
+    let energy: EnergySettings = await this.getEnergy();
+
+    /* Enable ev charger */
+    if (energy.evCharger == undefined || energy.meterPowerImportedCapability == undefined) {
+      energy.evCharger = true;
+      energy.meterPowerImportedCapability = "meter_power";
+      await this.setEnergy(energy);
+    }
 
     // Remove on-off capability for older devices
     if (this.hasCapability('onoff')) {
