@@ -32,14 +32,6 @@
     "meterPowerImportedCapability": "meter_power"
   },
   "capabilitiesOptions": {
-    "meter_power.charged": {
-      "title": { "en": "Charged Energy" }
-    },
-    "meter_power.discharged": {
-      "title": { "en": "Discharged Energy" }
-    }
-  },
-  "capabilitiesOptions": {
     "measure_current.l1": {
       "title": {
         "en": "Current L1",

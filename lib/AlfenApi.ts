@@ -205,9 +205,10 @@ export class AlfenApi {
           case '2501_2':
             value = this.#statusToString(prop.value);
             const enumString: string = this.#statusToEnum(prop.value);
-            capabilitiesData.push({ capabilityId: 'evcharger_charging_state', value : enumString });
-            const isCharging: boolean = (enumString == 'plugged_in_charging');
-            capabilitiesData.push({ capabilityId: 'evcharger_charging', value : isCharging });
+            const isCharging: boolean = enumString == 'plugged_in_charging';
+
+            capabilitiesData.push({ capabilityId: 'evcharger_charging_state', value: enumString });
+            capabilitiesData.push({ capabilityId: 'evcharger_charging', value: isCharging });
             break;
           case '2221_3': // Voltage L1
           case '2221_4': // Voltage L2
