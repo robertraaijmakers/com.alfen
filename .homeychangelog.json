@@ -14,7 +14,7 @@
   "1.0.8": {
     "en": "Added possible fix for an issue that the login got stuck and the app crashes after a while, added new trigger (status updated)."
   },
-  "1.0.9": {
+  "1.0.10": {
     "en": "Fix to comply with Homey v12.4.5 requirements, added support for new capabilities, and improved error handling."
   }
 }

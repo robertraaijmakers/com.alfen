@@ -15,9 +15,9 @@ export interface DeviceSettings {
 }
 
 export interface EnergySettings {
-  evCharger: boolean;
-  meterPowerImportedCapability: string;
-  meterPowerExportedCapability: string;
+  evCharger?: boolean;
+  meterPowerImportedCapability?: string;
+  meterPowerExportedCapability?: string;
 }
 
 export interface HttpsPromiseOptions {

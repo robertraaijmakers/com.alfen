@@ -19,32 +19,6 @@ module.exports = class MyDevice extends Homey.Device {
   async onInit() {
     this.log('MyDevice has been initialized');
 
-    let energy: EnergySettings = await this.getEnergy();
-
-    /* Enable ev charger */
-    if (energy.evCharger == undefined || energy.meterPowerImportedCapability == undefined) {
-      energy.evCharger = true;
-      energy.meterPowerImportedCapability = "meter_power";
-      await this.setEnergy(energy);
-    }
-
-    // Remove on-off capability for older devices
-    if (this.hasCapability('onoff')) {
-      await this.removeCapability('onoff');
-    }
-
-    if (this.hasCapability('meter_power.l1')) {
-      await this.removeCapability('meter_power.l1');
-    }
-
-    if (this.hasCapability('meter_power.l2')) {
-      await this.removeCapability('meter_power.l2');
-    }
-
-    if (this.hasCapability('meter_power.l3')) {
-      await this.removeCapability('meter_power.l3');
-    }
-
     // Initiate the Alfen API
     const settings: DeviceSettings = await this.getSettings();
     this.alfenApi = new AlfenApi(this.log, settings.ip, settings.username, settings.password);
@@ -62,6 +36,18 @@ module.exports = class MyDevice extends Homey.Device {
     }, this.refreshRate * 1000);
 
     await this.refreshDevice();
+
+    let energy: EnergySettings = await this.getEnergy();
+
+    /* Enable ev charger */
+    if (energy === null || energy.evCharger === null || energy.meterPowerImportedCapability === null) {
+      energy = {
+        evCharger: true,
+        meterPowerImportedCapability: 'meter_power',
+      };
+
+      await this.setEnergy(energy);
+    }
   }
 
   async refreshDevice() {
