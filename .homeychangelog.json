@@ -16,5 +16,8 @@
   },
   "1.0.10": {
     "en": "Fix to comply with Homey v12.4.5 requirements, added support for new capabilities, and improved error handling."
+  },
+  "1.0.11": {
+    "en": "Added additional logging to pairing process to help debug issues."
   }
 }
