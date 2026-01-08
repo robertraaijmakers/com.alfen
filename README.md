@@ -6,4 +6,5 @@ The app supports a couple of basic actions to regulate the way of charging. Plea
 
 *Please note:* Alfen doesn't support multiple connections through the WebAPI. That means that you will encounter errors with refreshing and setting data once you have your Alfen app open on your smartphone simultanously when running this app on your Homey. Make sure to close your smartphone app when submitting changes and refreshing data.
 
-More information can be found here: https://robertraaijmakers.github.io/com.alfen/
+More information for main-project can be found here: https://robertraaijmakers.github.io/com.alfen/
+For this projct can be found here: https://github.com/henriapperloo-creator/com.alfen
