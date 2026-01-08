@@ -8,4 +8,4 @@ The app supports a couple of basic actions to regulate the way of charging. Plea
 
 More information for main-project can be found here: https://robertraaijmakers.github.io/com.alfen/
 
-For this projct can be found here: https://github.com/henriapperloo-creator/com.alfen
+For this project can be found here: https://github.com/henriapperloo-creator/com.alfen
