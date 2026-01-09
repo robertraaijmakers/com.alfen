@@ -1,6 +1,6 @@
 {
-  "name": "com.alfen",
-  "version": "1.0.0",
+  "name": "com.alfen.duo",
+  "version": "2.0.0",
   "scripts": {
     "build": "tsc",
     "lint": "eslint --ext .js,.ts --ignore-path .gitignore ."
