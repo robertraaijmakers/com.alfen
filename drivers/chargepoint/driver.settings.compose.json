@@ -3,30 +3,49 @@
         "id": "ip",
         "type": "text",
         "label": {
-            "en": "IP address"
+            "en": "IP address",
+            "nl": "IP-adres"
         },
         "hint": {
-            "en": "The ip address of the Alfen charger, this must be a static IP address."
+            "en": "The ip address of the Alfen charger, this must be a static IP address.",
+            "nl": "Het IP-adres van de Alfen laadpaal. Dit moet een vast (statisch) IP-adres zijn."
         }
     },
     {
         "id": "username",
         "type": "text",
         "label": {
-            "en": "Username"
+            "en": "Username",
+            "nl": "Gebruikersnaam"
         },
         "hint": {
-            "en": "The username to authenticate towards the charge point"
+            "en": "The username to authenticate towards the charge point",
+            "nl": "De gebruikersnaam om te authenticeren bij de laadpaal."
         }
     },
     {
         "id": "password",
         "type": "password",
         "label": {
-            "en": "Password"
+            "en": "Password",
+            "nl": "Wachtwoord"
         },
         "hint": {
-            "en": "The password to authenticate towards the charge point"
+            "en": "The password to authenticate towards the charge point",
+            "nl": "Het wachtwoord om te authenticeren bij de laadpaal."
+        }
+    },
+    {
+        "id": "socketIndex",
+        "type": "number",
+        "label": {
+            "en": "Socket",
+            "nl": "Aansluiting"
+        },
+        "value": 1,
+        "attr": {
+            "min": 1,
+            "max": 2
         }
     }
 ]

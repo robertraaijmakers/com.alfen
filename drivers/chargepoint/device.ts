@@ -10,6 +10,7 @@ module.exports = class MyDevice extends Homey.Device {
   apiHeader: string = 'alfen/json; charset=utf-8';
   apiUrl: string = 'api';
   alfenApi!: AlfenApi;
+  socketIndex: 1 | 2 = 1;
 
   currentInterval: NodeJS.Timeout | null = null;
 
@@ -19,17 +20,23 @@ module.exports = class MyDevice extends Homey.Device {
   async onInit() {
     this.log('MyDevice has been initialized');
 
-    // Initiate the Alfen API
     const settings: DeviceSettings = await this.getSettings();
+
+    this.socketIndex = Number(settings.socketIndex ?? 1) === 2 ? 2 : 1;
+    const socketCount = Number(settings.socketCount ?? 1);
+
+    // Duo: Solar/Greenshare UI & sensoren mogen NIET bestaan (ook niet op socket 1)
+    if (socketCount === 2) {
+      await this.#removeSolarCapabilitiesForDuo();
+    }
+
     this.alfenApi = new AlfenApi(this.log, settings.ip, settings.username, settings.password);
 
-    // Register property listeners
-    this.#registerCapabilityListeners();
+    this.log(`Using socketIndex: ${this.socketIndex}`);
 
-    // Register flow card listeners
+    this.#registerCapabilityListeners();
     this.#registerFlowCardListeners();
 
-    // Set (and clear) interval and refresh device data
     if (this.currentInterval) clearInterval(this.currentInterval);
     this.currentInterval = this.homey.setInterval(() => {
       this.refreshDevice();
@@ -39,7 +46,6 @@ module.exports = class MyDevice extends Homey.Device {
 
     let energy: EnergySettings = await this.getEnergy();
 
-    /* Enable ev charger */
     if (energy === null || energy.evCharger === null || energy.meterPowerImportedCapability === null) {
       energy = {
         evCharger: true,
@@ -50,13 +56,33 @@ module.exports = class MyDevice extends Homey.Device {
     }
   }
 
+
+  async #removeSolarCapabilitiesForDuo(): Promise<void> {
+    const forbidden = [
+      'chargetype',         // "Standaard / Comfort+ groen / 100%"
+      'greenshare',         // aandeel groen
+      'comfortchargelevel', // comfort level
+    ];
+
+    for (const cap of forbidden) {
+      if (this.hasCapability(cap)) {
+        try {
+          await this.removeCapability(cap);
+          this.log(`Removed capability (Duo): ${cap}`);
+        } catch (err) {
+          this.error(`Failed removing capability ${cap}:`, err);
+        }
+      }
+    }
+  }
+
   async refreshDevice() {
     this.log('Refresh Device');
     let result: { capabilityId: string; value: string | number | boolean }[] | null = null;
 
     try {
       await this.alfenApi.apiLogin();
-      result = await this.alfenApi.apiGetActualValues();
+      result = await this.alfenApi.apiGetActualValues(this.socketIndex);
     } catch (error) {
       this.log('Error refreshing device:', error);
     } finally {
@@ -106,7 +132,10 @@ module.exports = class MyDevice extends Homey.Device {
       password: newSettings.password as string,
     };
 
+    this.socketIndex = (Number(settings.socketIndex ?? 1) === 2 ? 2 : 1);
+
     this.alfenApi = new AlfenApi(this.log, settings.ip, settings.username, settings.password);
+    this.log(`Using socketIndex: ${this.socketIndex}`);
   }
 
   /**
