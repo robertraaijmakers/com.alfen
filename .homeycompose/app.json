@@ -1,18 +1,18 @@
 {
-  "id": "com.alfen",
-  "version": "1.0.11",
+"id": "com.alfen.duo",
+  "version": "2.0.0",
   "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
     "local"
   ],
   "name": {
-    "en": "Alfen",
-    "nl": "Alfen"
+    "en": "Alfen Single/Duo",
+    "nl": "Alfen Single/Duo"
   },
   "description": {
-    "en": "Optimal Charging, Smarter Homes: Powering Efficiency for You and the Grid",
-    "nl": "Optimaal Laden, Slimmer Huis: Voorziet in efficiëntie voor u en het net"
+    "en": "Homey integration for Alfen Single and Duo EV chargers with real-time monitoring and control.",
+    "nl": "Homey integratie voor Alfen Single en Duo laadpalen met realtime monitoring en bediening."
   },
   "category": [
     "energy"
@@ -33,6 +33,10 @@
       {
         "name": "Robert Raaijmakers",
         "email": "dutchfighter@live.nl"
+      },
+        {
+        "name": "Henri Apperloo",
+        "email": "apperlooh@gmail.com"
       }
     ]
   },
@@ -44,10 +48,10 @@
     }
   },
   "bugs": {
-    "url": "https://github.com/robertraaijmakers/com.alfen/issues"
+    "url": "https://github.com/henriapperloo-creator/com.alfen/issues"
   },
-  "homepage": "https://robertraaijmakers.github.io/com.alfen/",
-  "support": "https://robertraaijmakers.github.io/com.alfen/",
-  "homeyCommunityTopicId": 130683,
-  "source": "https://github.com/robertraaijmakers/com.alfen/"
+  "homepage": "https://github.com/henriapperloo-creator/com.alfen/",
+  "support": "https://community.homey.app/t/alfen-charger-ondersteuning-voor-duo-laadpalen-toegevoegd/148907",
+  "homeyCommunityTopicId": 148907,
+  "source": "https://github.com/henriapperloo-creator/com.alfen/"
 }
