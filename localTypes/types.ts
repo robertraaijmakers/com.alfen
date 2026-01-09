@@ -1,3 +1,5 @@
+// localTypes/types.ts
+
 'use strict';
 
 import { IncomingHttpHeaders } from 'undici/types/header';
@@ -12,6 +14,9 @@ export interface DeviceSettings {
   ip: string;
   username: string;
   password: string;
+  socketIndex?: number;
+  /** Total number of sockets of the charger (1 = Single, 2 = Duo) */
+  socketCount?: number;
 }
 
 export interface EnergySettings {
@@ -33,14 +38,7 @@ export interface HttpsPromiseResponse {
   headers: IncomingHttpHeaders;
 }
 
-export interface InfoResponse {
-  Identity: string;
-  ContentType: string;
-  Model: string;
-  ObjectId: string;
-  Type: string;
-  FWVersion: string;
-}
+
 
 export interface PropertyResponse {
   id: string;
