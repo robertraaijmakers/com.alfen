@@ -1,18 +1,8 @@
-Alfen Single/Duo Homey App
-This app adds support for Alfen Single and Duo EV chargers and ensures the charger is correctly recognized as a charge point in Homey Energy.
-The app provides several basic controls to regulate the charging process.
-⚠️ Please note: Changing charging settings via Homey may interfere with your existing charge management system. Use these features at your own risk.
+This app adds support for the Alfen charger (single/duo connection) and will make sure the charger is shown as chargepoint in Homey Energy.
+The app supports a couple of basic actions to regulate the way of charging. Please note that updating these settings through Homey might cause issues with your charge management system and is at own risk!
 
-Network requirement
-For this app to function correctly, Homey and the charger must be on the same subnet.
-If your network contains multiple subnets (for example through VLANs, mesh systems, or advanced routers), make sure both devices are connected to the same subnet.
-This is a limitation imposed by Alfen for security reasons.
+Please note: for this app to work your Homey and the Charger must be connected to the same SUBNET. So if you have different subnets within your household, make sure the charger and your Homey are in the same. Otherwise you cannot login, this is a limitation/security measure on Alfen side.
 
-Web API limitation
-Alfen chargers only support one active Web API connection at a time.
-This means:
-If the Alfen smartphone app is open, Homey may fail to refresh or update data.
-Always close the Alfen smartphone app when using this Homey app.
+Please note: Alfen doesn't support multiple connections through the WebAPI. That means that you will encounter errors with refreshing and setting data once you have your Alfen app open on your smartphone simultanously when running this app on your Homey. Make sure to close your smartphone app when submitting changes and refreshing data.
 
-More information
-More information, updates, and support can be found via the links at the bottom of the Homey App Store page.
+More information can be found through the links on the bottom of the Homey App Store Page.

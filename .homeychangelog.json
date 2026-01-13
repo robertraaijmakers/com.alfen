@@ -1,34 +1,27 @@
 {
   "1.0.0": {
-    "en": "First version to support Alfen charger.",
-    "nl": "Eerste versie met ondersteuning voor Alfen lader."
+    "en": "First version to support Alfen charger."
   },
   "1.0.1": {
-    "en": "Added more capabilities and added support to update settings with flow cards.",
-    "nl": "Meer mogelijkheden toegevoegd en ondersteuning voor het bijwerken van instellingen met flow cards."
+    "en": "Added more capabilities and added support to update settings with flow cards."
   },
   "1.0.2": {
-    "en": "Updated error handling. Moved some capabilities to sensors to prevent accidental changes.",
-    "nl": "Verbeterde foutafhandeling. Enkele mogelijkheden verplaatst naar sensoren om onbedoelde wijzigingen te voorkomen."
+    "en": "Updated error handling. Moved some capabilities to sensors to prevent accidental changes."
   },
   "1.0.3": {
-    "en": "New version, better error handling, supporting more capabilities and updating settings with flow cards.",
-    "nl": "Nieuwe versie, betere foutafhandeling, ondersteuning voor meer mogelijkheden en bijwerken van instellingen met flow cards."
+    "en": "New version, better error handling, supporting more capabilities and updating settings with flow cards."
   },
   "1.0.8": {
-    "en": "Added possible fix for an issue that the login got stuck and the app crashes after a while, added new trigger (status updated).",
-    "nl": "Mogelijke oplossing toegevoegd voor een probleem waarbij de login vastliep en de app na een tijdje crashte, nieuwe trigger toegevoegd (status bijgewerkt)."
+    "en": "Added possible fix for an issue that the login got stuck and the app crashes after a while, added new trigger (status updated)."
   },
   "1.0.10": {
-    "en": "Fix to comply with Homey v12.4.5 requirements, added support for new capabilities, and improved error handling.",
-    "nl": "Fix om te voldoen aan Homey v12.4.5 vereisten, ondersteuning toegevoegd voor nieuwe mogelijkheden en verbeterde foutafhandeling."
+    "en": "Fix to comply with Homey v12.4.5 requirements, added support for new capabilities, and improved error handling."
   },
   "1.0.11": {
-    "en": "Added additional logging to pairing process to help debug issues.",
-    "nl": "Extra logging toegevoegd aan het koppelingsproces om problemen op te sporen."
+    "en": "Added additional logging to pairing process to help debug issues."
   },
   "2.0.0": {
-    "en": "Forked project https://github.com/robertraaijmakers/com.alfen, First version to support Alfen Duo charger..",
-    "nl": "Gevorkt project https://github.com/robertraaijmakers/com.alfen, Eerste versie met ondersteuning voor Alfen Duo lader.."
+    "en": "First version to support Alfen charger.",
+    "nl": "Eerste versie met ondersteuning voor Alfen Duo lader."
   }
 }

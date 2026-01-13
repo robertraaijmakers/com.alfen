@@ -1,55 +1,8 @@
-# Alfen Single/Duo Homey App
+# Alfen
+This app adds support for the Alfen charger (single and duo connection) and will make sure the charger is shown as chargepoint in Homey Energy. The app supports a couple of basic actions to regulate the way of charging. Please note that updating these settings through Homey might cause issues with your charge management system and is at own risk!
 
-This app adds support for **Alfen Single and Duo EV chargers** and ensures the charger is correctly recognized as a charge point in Homey Energy.
+*Please note:* for this app to work your Homey and the Charger must be connected to the same SUBNET. So if you have different subnets within your household, make sure the charger and your Homey are in the same. Otherwise you cannot login, this is a limitation/security measure on Alfen side.
 
-The app provides several basic controls to regulate the charging process.  
-⚠️ **Please note:** Changing charging settings via Homey may interfere with your existing charge management system. Use these features at your own risk.
+*Please note:* Alfen doesn't support multiple connections through the WebAPI. That means that you will encounter errors with refreshing and setting data once you have your Alfen app open on your smartphone simultanously when running this app on your Homey. Make sure to close your smartphone app when submitting changes and refreshing data.
 
----
-
-## Network requirement
-
-For this app to function correctly, **Homey and the charger must be on the same subnet**.
-
-If your network contains multiple subnets (for example through VLANs, mesh systems, or advanced routers), make sure both devices are connected to the same subnet.  
-This is a limitation imposed by Alfen for security reasons.
-
----
-
-## Web API limitation
-
-Alfen chargers only support **one active Web API connection at a time**.
-
-This means:
-
-- If the Alfen smartphone app is open, Homey may fail to refresh or update data.
-- Always close the Alfen smartphone app when using this Homey app.
-
----
-
-## Supported devices
-
-- Alfen Single charger
-- Alfen Duo charger (both sockets supported as separate Homey devices)
-
----
-
-## Homey Energy
-
-The charger is automatically registered as an EV charger in Homey Energy and supports power and energy monitoring.
-
----
-
-## Support & information
-
-For updates, bug reports and discussions:
-
-- GitHub: https://github.com/henriapperloo-creator/com.alfen
-- Homey Community: https://community.homey.app/t/alfen-charger-ondersteuning-voor-duo-laadpalen-toegevoegd/148907
-
----
-
-## Disclaimer
-
-This project is not affiliated with or endorsed by Alfen.  
-Use this app at your own risk.
+More information can be found here: https://robertraaijmakers.github.io/com.alfen/
