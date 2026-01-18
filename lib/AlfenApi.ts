@@ -1,36 +1,20 @@
+//lib/AlfenApi.tx
+
 'use strict';
 
 import { IncomingHttpHeaders } from 'undici/types/header';
-import { HttpsPromiseOptions, HttpsPromiseResponse, InfoResponse, PropertyResponseBody } from '../localTypes/types';
-
 import { Pool } from 'undici';
 
-const energyMeterCapabilitiesMap: { [key: string]: string } = {
-  '2062_0': 'measure_current.stationlimit', // Max. station limit
-  '2126_0': 'authmode',
-  '2129_0': 'measure_current.limit', // Custom Set Limit (A)
-  '2201_0': 'measure_temperature', // °C
-  '2221_3': 'measure_voltage.l1', // A
-  '2221_4': 'measure_voltage.l2', // A
-  '2221_5': 'measure_voltage.l3', // A
-  '2221_A': 'measure_current.l1', // V
-  '2221_B': 'measure_current.l2', // V
-  '2221_C': 'measure_current.l3', // V
-  //'2221_13': 'measure_power.l1', // W
-  //'2221_14': 'measure_power.l2', // W
-  //'2221_15': 'measure_power.l3', // W
-  '2221_16': 'measure_power', // W (Power / Vermogen)
-  '2221_22': 'meter_power', // kWh (Energy / Energie)
-  '2501_2': 'operatingmode',
-  '3280_1': 'chargetype',
-  '3280_2': 'greenshare',
-  '3280_3': 'comfortchargelevel',
-  '9999_0': 'evcharger_charging',
-  '9999_1': 'evcharger_charging_state',
-};
+import { HttpsPromiseOptions, HttpsPromiseResponse, PropertyResponseBody } from '../localTypes/types';
+import { InfoResponse } from './models/InfoResponse';
+import { ChargerSocketsInfo, SocketType, parseChargerSocketsInfo } from './models/SocketType';
+import { ChargerDetails } from './models/ChargerDetails';
+import { SocketIndex, buildIds, getActualValuePropIds, getCapabilityMap, normalizeApiId } from './alfenProps';
+import { Cap, type CapabilityId } from './homeyCapabilities';
 
 const apiHeader: string = 'alfen/json; charset=utf-8';
 const apiUrl: string = 'api';
+
 
 export class AlfenApi {
   #agent: Pool | null = null;
@@ -88,6 +72,7 @@ export class AlfenApi {
       path: `/${apiUrl}/login`,
       method: 'POST',
       headers: {},
+      keepAlive: true,
     } as HttpsPromiseOptions;
 
     this.#log(`Set body & options`);
@@ -121,6 +106,7 @@ export class AlfenApi {
       path: `/${apiUrl}/logout`,
       method: 'POST',
       headers: {} as IncomingHttpHeaders,
+      keepAlive: false,
     } as HttpsPromiseOptions;
 
     try {
@@ -141,36 +127,41 @@ export class AlfenApi {
     }
   }
 
-  async apiGetChargerDetails() {
-    // Define the options for the HTTPS request (no body, just headers)
+  async apiGetChargerDetails(): Promise<ChargerDetails> {
     const options: HttpsPromiseOptions = {
       path: `/${apiUrl}/info`,
       method: 'GET',
       headers: {},
-    } as HttpsPromiseOptions;
+      keepAlive: true,
+    };
 
     try {
-      // Make the HTTPS request using the httpsPromise method
       const response = await this.#httpsPromise(options);
 
-      // Handle the response
-      this.#log('Info retrieved successfully:', response.body);
-      return <InfoResponse>response.body;
-    } catch (error) {
-      throw new Error(`Request failed: ${error}`);
+      const info = response.body as InfoResponse;
+      const sockets = parseChargerSocketsInfo(info.Type);
+
+      this.#log('Info retrieved successfully:', info);
+      this.#log('Sockets parsed:', sockets);
+
+      return { info, sockets };
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(`apiGetChargerDetails failed: ${msg}`);
     }
   }
 
-  async apiGetActualValues() {
-    // Define the 'ids' parameter
-    const ids = '2056_0,2060_0,2062_0,2126_0,2129_0,2201_0,2221_3,2221_4,2221_5,2221_0A,2221_0B,2221_0C,2221_13,2221_14,2221_15,2221_16,2221_22,2501_2,3280_1,3280_2,3280_3';
 
-    // Define the options for the HTTPS request (no body, just headers)
+  async apiGetActualValues(socketIndex: SocketIndex = 1) {
+    const propIds = getActualValuePropIds(socketIndex);
+    const ids = buildIds(propIds);
+
     const options: HttpsPromiseOptions = {
-      path: `/${apiUrl}/prop?ids=${ids}`, // Add the 'ids' parameter to the path
+      path: `/${apiUrl}/prop?ids=${ids}`,
       method: 'GET',
       headers: {},
-    } as HttpsPromiseOptions;
+      keepAlive: true,
+    };
 
     let bodyResult: PropertyResponseBody;
     const capabilitiesData: Array<{
@@ -192,51 +183,49 @@ export class AlfenApi {
     // Handle the response
     const result = bodyResult.properties;
 
+    // primary map for this socket
+    const capMap = getCapabilityMap(socketIndex);
+
+    // fallback for Duo: some firmwares still return socket-1 ids 
+    const fallbackMap = undefined;
     for (const prop of result) {
-      const capabilityId = energyMeterCapabilitiesMap[prop.id];
+      const apiId = normalizeApiId(prop.id);
+      const capabilityId = capMap[apiId] ?? fallbackMap?.[apiId];
 
-      this.#log(`Property: ${prop.id}: ${prop.value}, Type: ${prop.type}, Category: ${prop.cat}, Access: ${prop.access}, Capability: ${capabilityId ?? 'Unknown'}`);
+      this.#log(
+        `Property: ${apiId}: ${prop.value}, Type: ${prop.type}, Category: ${prop.cat}, Access: ${prop.access}, Capability: ${capabilityId ?? 'Unknown'}`
+      );
 
-      if (capabilityId) {
-        let value: string | number | boolean | null = null;
-
-        // Handle specific rounding or transformation for certain properties
-        switch (prop.id) {
-          case '2501_2':
-            value = this.#statusToString(prop.value);
-            const enumString: string = this.#statusToEnum(prop.value);
-            const isCharging: boolean = enumString == 'plugged_in_charging';
-
-            capabilitiesData.push({ capabilityId: 'evcharger_charging_state', value: enumString });
-            capabilitiesData.push({ capabilityId: 'evcharger_charging', value: isCharging });
-            break;
-          case '2221_3': // Voltage L1
-          case '2221_4': // Voltage L2
-          case '2221_5': // Voltage L3
-            value = Math.round(prop.value); // rounding values, no decimal
-            break;
-          case '2201_0': // Temperature
-          case '2221_A': // Current L1
-          case '2221_B': // Current L2
-          case '2221_C': // Current L3
-          case '2221_16': // Power (watts)
-            value = Math.round(prop.value * 10) / 10; // rounding values, one decimal
-            break;
-          case '2221_22': // Total energy
-            value = Math.round(prop.value / 10) / 100; // rounding values, 2 decimal (but needs to be devided by 1000)
-            break;
-          case '2126_0': // Auth mode
-          case '3280_1': // Charge type
-            value = prop.value.toString();
-            break;
-          default:
-            value = prop.value;
-            break;
-        }
-
-        // Collect the mapped data
-        capabilitiesData.push({ capabilityId, value });
+      if (!capabilityId) {
+        // development aid: shows missing mappings
+        this.#log(`Unmapped prop id: ${apiId} (raw=${prop.id}, socketIndex=${socketIndex})`);
+        continue;
       }
+
+      const normalized = this.#normalizeCapabilityValue(capabilityId, prop.value, apiId);
+
+      if (normalized?.derived?.length) {
+        for (const d of normalized.derived) {
+          capabilitiesData.push(d);
+        }
+      }
+
+      if (normalized?.value !== undefined) {
+        capabilitiesData.push({
+          capabilityId,
+          value: normalized.value,
+        });
+      }
+    }
+
+    // For UI: add a single total current so you can easily see socket-1 vs socket-2.
+    // Uses max phase current (works for 1p + 3p).
+    const i1 = Number(capabilitiesData.find((x) => x.capabilityId === 'measure_current.l1')?.value ?? 0);
+    const i2 = Number(capabilitiesData.find((x) => x.capabilityId === 'measure_current.l2')?.value ?? 0);
+    const i3 = Number(capabilitiesData.find((x) => x.capabilityId === 'measure_current.l3')?.value ?? 0);
+    const current = Math.round(Math.max(i1, i2, i3) * 10) / 10;
+    if (!Number.isNaN(current)) {
+      capabilitiesData.push({ capabilityId: 'measure_current', value: current });
     }
 
     // Calculate power (Volt * Ampere = Watt) for L1, L2, and L3
@@ -360,6 +349,7 @@ export class AlfenApi {
       path: `/${apiUrl}/cmd`,
       method: 'POST',
       headers: {},
+      keepAlive: true,
     } as HttpsPromiseOptions;
 
     try {
@@ -380,6 +370,7 @@ export class AlfenApi {
       path: `/${apiUrl}/prop`,
       method: 'POST',
       headers: {},
+      keepAlive: true,
     } as HttpsPromiseOptions;
 
     try {
@@ -429,6 +420,71 @@ export class AlfenApi {
 
     return { body: parsedBody, headers: res.headers } as HttpsPromiseResponse;
   }
+
+  #normalizeCapabilityValue(
+    capabilityId: CapabilityId,
+    raw: unknown,
+    propId: string,
+  ): { value?: number | string | boolean; derived?: Array<{ capabilityId: CapabilityId; value: number | string | boolean }> } {
+    if (raw === null || raw === undefined) return {};
+
+    let v: unknown = raw;
+
+    if (capabilityId === Cap.OperatingMode && typeof v === 'number') {
+      const value = this.#statusToString(v);
+      const enumString = this.#statusToEnum(v);
+      const isCharging = enumString === 'plugged_in_charging';
+
+      return {
+        value,
+        derived: [
+          { capabilityId: Cap.EvChargingState, value: enumString },
+          { capabilityId: Cap.EvCharging, value: isCharging },
+        ],
+      };
+    }
+
+    if (capabilityId === Cap.EvCharging && typeof v === 'number') {
+      return { value: v === 1 };
+    }
+
+    // String capabilities
+    if (capabilityId === Cap.AuthMode || capabilityId === Cap.ChargeType) {
+      return { value: String(v) };
+    }
+
+    // Numeric capabilities (Alfen returns these sometimes as string)
+    if (capabilityId === Cap.GreenShare || capabilityId === Cap.ComfortChargeLevel) {
+      const n = typeof v === 'number' ? v : Number(v);
+      return Number.isFinite(n) ? { value: n } : {};
+    }
+
+    // Try parse numeric strings for numeric capabilities
+    if (typeof v === 'string' && v.trim() !== '') {
+      const n = Number(v);
+      if (Number.isFinite(n)) v = n;
+    }
+
+    if (typeof v === 'number') {
+      if (capabilityId === Cap.MeasureTemperature) return { value: Math.round(v * 10) / 10 };
+      if (capabilityId.startsWith('measure_voltage')) return { value: Math.round(v) };
+      if (capabilityId.startsWith('measure_current')) return { value: Math.round(v * 10) / 10 };
+
+      if (capabilityId.startsWith('measure_power')) {
+        const watts = v > 0 && v <= 200 ? v * 1000 : v;
+        return { value: Math.round(watts) };
+      }
+
+      if (capabilityId === Cap.MeterPower) return { value: Math.round(v * 100) / 100 };
+
+      return { value: v };
+    }
+
+    return { value: v as any };
+  }
+
+
+
 
   #statusToString(statusKey: number): string {
     const statusMapping: Record<number, string> = {

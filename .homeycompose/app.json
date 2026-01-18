@@ -1,6 +1,6 @@
 {
   "id": "com.alfen",
-  "version": "1.0.11",
+  "version": "2.0.0",
   "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
@@ -33,6 +33,10 @@
       {
         "name": "Robert Raaijmakers",
         "email": "dutchfighter@live.nl"
+      },
+      {
+        "name": "Henri Apperloo",
+        "email": "apperlooh@gmail.com"
       }
     ]
   },

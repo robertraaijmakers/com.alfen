@@ -1,0 +1,9 @@
+{
+  "pair": {
+    "title": "Voer uw gegevens in",
+    "ip": "IP-adres",
+    "user": "Gebruikersnaam",
+    "password": "Wachtwoord",
+    "connect": "Verbinden"
+  }
+}

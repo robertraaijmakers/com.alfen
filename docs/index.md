@@ -1,15 +1,44 @@
-# Alfen
-This app will let you connect your Alfen charger over the local network with Homey. It will display the most important energy information and also gives you the ability to control some settings through a custom flow!
+# Alfen Homey App
+This app allows you to connect your Alfen EV charger to Homey over your local network. It provides real-time energy monitoring and enables control of several charging settings using Homey Flow cards.
 
-Settings that you are able to set (USE AT OWN RISK):
-- Authentication Mode (plug & charge and RFID);
+## Supported features
+The following settings can be controlled through Homey **(USE AT YOUR OWN RISK):**
+- Authentication Mode (Plug & Charge / RFID)
 - Charge Type (Normal, Comfort, Green)
-- Comfort Charge Level (when charge type is Comfort, this is the minimum that will be charged regardless of how much redelivery takes place)
-- Green Share (% of how much green energy should be used (I think applied when you set your thing to green… but not sure)
-- Current Limit (1A - 32A): It can’t be set to 0. So the only way to fully stop charging is probably switching the charger to Charge Type: Green.
+- Comfort Charge Level  
+  (Minimum charge level when Comfort mode is active, regardless of available solar energy)
+- Green Share  
+  (Percentage of green energy to be used when charging in Green mode)
+- Current Limit (1A – 32A)  
+  *(Charging cannot be fully stopped using current limit. To stop charging, switch to Charge Type: Green.)*
 
-*NOTE* The app will only work if your charger is of a supported type and if your charger lives in the same subnet as your Homey. This is a security limitation created by Alfen and there is no work-around.
+⚠️ Changing these values via Homey may interfere with existing charge management systems.
 
-*NOTE* Alfen only supports ONE connection at a time. This means that you can't use Homey and your Alfen (e.g. MyEve) app at the same time. If you encounter connection issues. Please logout of your Alfen Mobile App (if you want to use the Homey app) or temporarily turn off the Homey app (if you want to use your mobile app). This is a security limitation by Alfen and there is no work-around.
+## Network requirement
+This app only works if:
 
-*NOTE* The app can only connect to certain Alfen chargers. This is due to the fact that Alfen didn't publish their APIs so I can only add support for the type that I have at home. If you need support for other chargers of Alfen, please debug their API and add it to this app through a pull request.
+- Your charger is a supported Alfen model
+- Your charger and Homey are on the **same subnet**
+
+This is a security restriction imposed by Alfen and cannot be bypassed.
+
+## Web API limitation
+Alfen chargers support **only one active API connection at a time**.
+
+This means:
+- You cannot use the Homey app and the Alfen mobile app simultaneously.
+- If you experience connection issues:
+  - Close the Alfen mobile app when using Homey
+  - Or temporarily disable the Homey app when using the mobile app
+
+This is a limitation of Alfen’s Web API.
+
+## Supported chargers
+Alfen has not published their API specifications.  
+Therefore, support is limited to chargers that could be tested and reverse-engineered.
+
+If you would like to add support for additional Alfen models, you are welcome to contribute by submitting a pull request.
+
+## Disclaimer
+This project is not affiliated with or endorsed by Alfen.  
+Use this application at your own risk.

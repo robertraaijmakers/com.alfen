@@ -6,6 +6,7 @@
   "class": "evcharger",
   "capabilities": [
     "operatingmode",
+    "measure_current",
     "measure_power",
     "evcharger_charging",
     "evcharger_charging_state",

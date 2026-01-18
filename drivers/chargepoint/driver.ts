@@ -2,7 +2,10 @@
 
 import Homey from 'homey';
 import PairSession from 'homey/lib/PairSession';
-import { PairData, InfoResponse } from '../../localTypes/types';
+import { PairData } from '../../localTypes/types';
+
+import { InfoResponse } from '../../lib/models/InfoResponse';
+import { ChargerSocketsInfo } from '../../lib/models/SocketType';
 import { AlfenApi } from '../../lib/AlfenApi';
 
 module.exports = class MyDriver extends Homey.Driver {
@@ -11,6 +14,7 @@ module.exports = class MyDriver extends Homey.Driver {
   #password?: string;
 
   infoData?: InfoResponse;
+  socketsInfo?: ChargerSocketsInfo;
 
   /**
    * onInit is called when the driver is initialized.
@@ -56,17 +60,26 @@ module.exports = class MyDriver extends Homey.Driver {
         await alfenApi.apiLogin();
       } catch (error) {
         this.log(error);
-        throw new Error('Error logging in to charger, note that your Homey should be on the same subnet as your charger. This is a fysical limitation by Alfen. Error: ' + error);
+        throw new Error(
+          'Error logging in to charger, note that your Homey should be on the same subnet as your charger. This is a fysical limitation by Alfen. Error: ' +
+          error,
+        );
       }
 
       try {
-        const result = await alfenApi.apiGetChargerDetails();
-        this.infoData = result;
+        const details = await alfenApi.apiGetChargerDetails();
+
+        this.infoData = details.info;           // InfoResponse
+        this.socketsInfo = details.sockets;     // Parsed sockets info
+
         await alfenApi.apiLogout();
-        this.log(result);
+        this.log(details);
       } catch (error) {
         this.log(error);
-        throw new Error("Login was successful, but couldn't retrieve charge information. Your charger is probably not supported or has firmware incompatible with this Homey app. Error: " + error);
+        throw new Error(
+          "Login was successful, but couldn't retrieve charge information. Your charger is probably not supported or has firmware incompatible with this Homey app. Error: " +
+          error,
+        );
       }
 
       return true;
@@ -75,27 +88,89 @@ module.exports = class MyDriver extends Homey.Driver {
     session.setHandler('list_devices', async () => {
       this.homey.log('Listing devices');
 
-      const devicesList = [];
+      const devicesList: any[] = [];
 
-      if (this.#ip && this.#username && this.#password && this.infoData) {
+      if (!this.#ip || !this.#username || !this.#password || !this.infoData) {
+        return devicesList;
+      }
+
+      const baseName = this.infoData.Identity ?? 'Alfen Charger';
+      const baseId = this.infoData.ObjectId ?? 'my-charger';
+
+      const model = this.infoData.Model ?? 'Unknown';
+      const type = this.infoData.Type ?? 'Unknown';
+      const fwVersion = this.infoData.FWVersion ?? 'Unknown';
+      const contentType = this.infoData.ContentType ?? 'Unknown';
+
+      const sockets = this.socketsInfo;
+      const socketCount = sockets?.numberOfSockets ?? 1;
+      
+      // If we don't know sockets yet -> behave like single to be safe
+      if (!sockets || sockets.numberOfSockets === 1) {
         devicesList.push({
-          name: this.infoData.Identity ?? 'Alfen Charger',
+          name: baseName,
           data: {
-            id: this.infoData.ObjectId ?? 'my-charger',
-            model: this.infoData.Model ?? 'Unknown',
-            type: this.infoData.Type ?? 'Unknown',
-            fwVersion: this.infoData.FWVersion ?? 'Unknown',
-            contentType: this.infoData.ContentType ?? 'Unknown',
+            id: `${baseId}-S1`, // <-- alleen identity
           },
           settings: {
             ip: this.#ip,
             username: this.#username,
             password: this.#password,
+            socketIndex: 1,
+            socketCount,
+            // optioneel: bewaren als settings (niet in data)
+            model,
+            type,
+            fwVersion,
+            contentType,
           },
         });
+
+        return devicesList;
       }
 
+      // Duo: always offer both devices
+      devicesList.push(
+        {
+          name: `${baseName} (Socket 1)`,
+          data: {
+            id: `${baseId}-S1`, // <-- alleen identity
+          },
+          settings: {
+            ip: this.#ip,
+            username: this.#username,
+            password: this.#password,
+            socketIndex: 1,
+            socketCount,
+            // optioneel: bewaren als settings (niet in data)
+            model,
+            type,
+            fwVersion,
+            contentType,
+          },
+        },
+        {
+          name: `${baseName} (Socket 2)`,
+          data: {
+            id: `${baseId}-S2`, // <-- alleen identity
+          },
+          settings: {
+            ip: this.#ip,
+            username: this.#username,
+            password: this.#password,
+            socketIndex: 2,
+            socketCount,
+            // optioneel: bewaren als settings (niet in data)
+            model,
+            type,
+            fwVersion,
+            contentType,
+          },
+        },
+      );
+
       return devicesList;
+
     });
   }
 };

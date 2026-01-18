@@ -19,5 +19,9 @@
   },
   "1.0.11": {
     "en": "Added additional logging to pairing process to help debug issues."
+  },
+  "2.0.0": {
+    "en": "First version to support Alfen charger.",
+    "nl": "Eerste versie met ondersteuning voor Alfen Duo lader."
   }
 }
