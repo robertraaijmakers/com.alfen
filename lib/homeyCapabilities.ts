@@ -22,6 +22,7 @@ export const Cap = {
   MeterPower: 'meter_power',
 
   AuthMode: 'authmode',
+  ChargeID: 'chargeid',
   ChargeType: 'chargetype',
   GreenShare: 'greenshare',
   ComfortChargeLevel: 'comfortchargelevel',
@@ -30,4 +31,4 @@ export const Cap = {
   StationLimit: 'measure_current.stationlimit',
 } as const;
 
-export type CapabilityId = typeof Cap[keyof typeof Cap];
+export type CapabilityId = (typeof Cap)[keyof typeof Cap];

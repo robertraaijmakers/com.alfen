@@ -30,6 +30,9 @@ module.exports = class MyDevice extends Homey.Device {
       await this.#removeSolarCapabilitiesForDuo();
     }
 
+    // Backwards compatibility: add chargeid capability if it doesn't exist
+    await this.#ensureRequiredCapabilities();
+
     this.alfenApi = new AlfenApi(this.log, settings.ip, settings.username, settings.password);
 
     this.log(`Using socketIndex: ${this.socketIndex}`);
@@ -43,24 +46,12 @@ module.exports = class MyDevice extends Homey.Device {
     }, this.refreshRate * 1000);
 
     await this.refreshDevice();
-
-    let energy: EnergySettings = await this.getEnergy();
-
-    if (energy === null || energy.evCharger === null || energy.meterPowerImportedCapability === null) {
-      energy = {
-        evCharger: true,
-        meterPowerImportedCapability: 'meter_power',
-      };
-
-      await this.setEnergy(energy);
-    }
   }
-
 
   async #removeSolarCapabilitiesForDuo(): Promise<void> {
     const forbidden = [
-      'chargetype',         // "Standaard / Comfort+ groen / 100%"
-      'greenshare',         // aandeel groen
+      'chargetype', // "Standaard / Comfort+ groen / 100%"
+      'greenshare', // aandeel groen
       'comfortchargelevel', // comfort level
     ];
 
@@ -71,6 +62,28 @@ module.exports = class MyDevice extends Homey.Device {
           this.log(`Removed capability (Duo): ${cap}`);
         } catch (err) {
           this.error(`Failed removing capability ${cap}:`, err);
+        }
+      }
+    }
+  }
+
+  /**
+   * Backwards compatibility: Ensure required capabilities exist.
+   * This adds the chargeid capability to existing devices that were created before this feature.
+   * Note: chargeid is station-wide (device-level), not per-socket, so it's added to all devices.
+   */
+  async #ensureRequiredCapabilities(): Promise<void> {
+    const requiredCapabilities = [
+      'chargeid', // Plug & Charge ID (station-wide, not per-socket)
+    ];
+
+    for (const cap of requiredCapabilities) {
+      if (!this.hasCapability(cap)) {
+        try {
+          await this.addCapability(cap);
+          this.log(`Added missing capability (backwards compatibility): ${cap}`);
+        } catch (err) {
+          this.error(`Failed adding capability ${cap}:`, err);
         }
       }
     }
@@ -132,7 +145,7 @@ module.exports = class MyDevice extends Homey.Device {
       password: newSettings.password as string,
     };
 
-    this.socketIndex = (Number(settings.socketIndex ?? 1) === 2 ? 2 : 1);
+    this.socketIndex = Number(settings.socketIndex ?? 1) === 2 ? 2 : 1;
 
     this.alfenApi = new AlfenApi(this.log, settings.ip, settings.username, settings.password);
     this.log(`Using socketIndex: ${this.socketIndex}`);
@@ -173,6 +186,14 @@ module.exports = class MyDevice extends Homey.Device {
         await this.setCapabilityValue(capabilityId, value)
           .catch((error) => this.error(`Error updating capability ${capabilityId} with value ${value}: `, error))
           .then(() => this.log(`Update capability: ${capabilityId} with value ${value}`));
+
+        // Trigger flow card for comfort charge level changes
+        if (capabilityId === 'comfortchargelevel') {
+          this.homey.flow
+            .getDeviceTriggerCard('comfortchargelevel_changed')
+            .trigger(this, { comfortchargelevel: value })
+            .catch((error: Error) => this.error('Error triggering comfortchargelevel_changed flow:', error));
+        }
       } catch (error) {
         this.error(`Error updating capability ${capabilityId}:`, error);
       }
@@ -195,6 +216,10 @@ module.exports = class MyDevice extends Homey.Device {
     this.registerCapabilityListener('authmode', async (value) => {
       await this.#setAuthMode(value);
     });
+
+    this.registerCapabilityListener('chargeid', async (value) => {
+      await this.#setChargeID(value);
+    });
   }
 
   async #registerFlowCardListeners() {
@@ -216,6 +241,21 @@ module.exports = class MyDevice extends Homey.Device {
     this.homey.flow.getActionCard('authmode').registerRunListener(async (args, state) => {
       this.log('Flow card action', args, state);
       await this.#setAuthMode(args.authmode);
+    });
+
+    this.homey.flow.getActionCard('chargeid').registerRunListener(async (args, state) => {
+      this.log('Flow card action', args, state);
+      await this.#setChargeID(args.chargeid);
+    });
+
+    this.homey.flow.getActionCard('enable_plug_and_charge').registerRunListener(async (args, state) => {
+      this.log('Flow card action: enable_plug_and_charge', args, state);
+      await this.#enablePlugAndCharge(args.chargeid);
+    });
+
+    this.homey.flow.getActionCard('enable_rfid').registerRunListener(async (args, state) => {
+      this.log('Flow card action: enable_rfid', args, state);
+      await this.#enableRFID();
     });
 
     this.homey.flow.getActionCard('measure_current.limit').registerRunListener(async (args, state) => {
@@ -274,6 +314,54 @@ module.exports = class MyDevice extends Homey.Device {
       await this.alfenApi.apiSetAuthMode(value);
     } catch (error) {
       this.log('Error setting auth mode:', error);
+      throw new Error(`${error}`);
+    } finally {
+      await this.alfenApi.apiLogout();
+    }
+  }
+
+  async #setChargeID(value: string) {
+    this.log('setChargeID', value);
+
+    try {
+      await this.alfenApi.apiLogin();
+      await this.alfenApi.apiSetChargeID(value);
+    } catch (error) {
+      this.log('Error setting charge ID:', error);
+      throw new Error(`${error}`);
+    } finally {
+      await this.alfenApi.apiLogout();
+    }
+  }
+
+  async #enablePlugAndCharge(chargeID: string) {
+    this.log('enablePlugAndCharge', chargeID);
+
+    try {
+      await this.alfenApi.apiLogin();
+      // First set the charge ID
+      await this.alfenApi.apiSetChargeID(chargeID);
+      // Then set auth mode to Plug & Charge (0)
+      await this.alfenApi.apiSetAuthMode('0');
+    } catch (error) {
+      this.log('Error enabling Plug & Charge:', error);
+      throw new Error(`${error}`);
+    } finally {
+      await this.alfenApi.apiLogout();
+    }
+  }
+
+  async #enableRFID() {
+    this.log('enableRFID');
+
+    try {
+      await this.alfenApi.apiLogin();
+      // First clear the charge ID
+      await this.alfenApi.apiSetChargeID('');
+      // Then set auth mode to RFID (2)
+      await this.alfenApi.apiSetAuthMode('2');
+    } catch (error) {
+      this.log('Error enabling RFID:', error);
       throw new Error(`${error}`);
     } finally {
       await this.alfenApi.apiLogout();

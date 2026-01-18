@@ -15,7 +15,6 @@ import { Cap, type CapabilityId } from './homeyCapabilities';
 const apiHeader: string = 'alfen/json; charset=utf-8';
 const apiUrl: string = 'api';
 
-
 export class AlfenApi {
   #agent: Pool | null = null;
   #retrieving: number = 0;
@@ -151,7 +150,6 @@ export class AlfenApi {
     }
   }
 
-
   async apiGetActualValues(socketIndex: SocketIndex = 1) {
     const propIds = getActualValuePropIds(socketIndex);
     const ids = buildIds(propIds);
@@ -186,15 +184,13 @@ export class AlfenApi {
     // primary map for this socket
     const capMap = getCapabilityMap(socketIndex);
 
-    // fallback for Duo: some firmwares still return socket-1 ids 
+    // fallback for Duo: some firmwares still return socket-1 ids
     const fallbackMap = undefined;
     for (const prop of result) {
       const apiId = normalizeApiId(prop.id);
       const capabilityId = capMap[apiId] ?? fallbackMap?.[apiId];
 
-      this.#log(
-        `Property: ${apiId}: ${prop.value}, Type: ${prop.type}, Category: ${prop.cat}, Access: ${prop.access}, Capability: ${capabilityId ?? 'Unknown'}`
-      );
+      this.#log(`Property: ${apiId}: ${prop.value}, Type: ${prop.type}, Category: ${prop.cat}, Access: ${prop.access}, Capability: ${capabilityId ?? 'Unknown'}`);
 
       if (!capabilityId) {
         // development aid: shows missing mappings
@@ -338,6 +334,24 @@ export class AlfenApi {
     return true;
   }
 
+  async apiSetChargeID(chargeID: string) {
+    // Define the request body
+    const body = JSON.stringify({
+      '2063_0': {
+        id: '2063_0',
+        value: chargeID,
+      },
+    });
+
+    try {
+      await this.#apiSetProperty(body);
+    } catch (e) {
+      throw new Error(`Error setting charge ID: ${e}`);
+    }
+
+    return true;
+  }
+
   async apiRebootEvCharger() {
     // Define the request body
     const body = JSON.stringify({
@@ -449,7 +463,7 @@ export class AlfenApi {
     }
 
     // String capabilities
-    if (capabilityId === Cap.AuthMode || capabilityId === Cap.ChargeType) {
+    if (capabilityId === Cap.AuthMode || capabilityId === Cap.ChargeType || capabilityId === Cap.ChargeID) {
       return { value: String(v) };
     }
 
@@ -472,19 +486,16 @@ export class AlfenApi {
 
       if (capabilityId.startsWith('measure_power')) {
         const watts = v > 0 && v <= 200 ? v * 1000 : v;
-        return { value: Math.round(watts) };
+        return { value: Math.round(watts * 10) / 10 };
       }
 
-      if (capabilityId === Cap.MeterPower) return { value: Math.round(v * 100) / 100 };
+      if (capabilityId === Cap.MeterPower) return { value: Math.round(v / 10) / 100 };
 
       return { value: v };
     }
 
     return { value: v as any };
   }
-
-
-
 
   #statusToString(statusKey: number): string {
     const statusMapping: Record<number, string> = {

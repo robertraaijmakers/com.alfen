@@ -38,8 +38,6 @@ export interface HttpsPromiseResponse {
   headers: IncomingHttpHeaders;
 }
 
-
-
 export interface PropertyResponse {
   id: string;
   access: number;

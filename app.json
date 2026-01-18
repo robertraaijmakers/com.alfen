@@ -70,6 +70,31 @@
             "filter": "driver_id=chargepoint"
           }
         ]
+      },
+      {
+        "id": "comfortchargelevel_changed",
+        "title": {
+          "en": "Comfort charge level changed",
+          "nl": "Comfort laadniveau veranderd"
+        },
+        "tokens": [
+          {
+            "name": "comfortchargelevel",
+            "type": "number",
+            "title": {
+              "en": "Comfort charge level",
+              "nl": "Comfort laadniveau"
+            },
+            "example": 2500
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=chargepoint"
+          }
+        ]
       }
     ],
     "actions": [
@@ -221,6 +246,96 @@
                 }
               }
             ]
+          }
+        ]
+      },
+      {
+        "id": "chargeid",
+        "title": {
+          "en": "Set Plug & Charge ID",
+          "nl": "Zet Plug & Charge ID"
+        },
+        "titleFormatted": {
+          "en": "Set Plug & Charge ID to [[chargeid]]",
+          "nl": "Zet Plug & Charge ID op [[chargeid]]"
+        },
+        "hint": {
+          "en": "Set the Plug & Charge ID. Leave empty to clear the ID when switching to RFID mode.",
+          "nl": "Zet het Plug & Charge ID. Laat leeg om het ID te wissen bij overschakelen naar RFID-modus."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=chargepoint"
+          },
+          {
+            "type": "text",
+            "name": "chargeid",
+            "title": {
+              "en": "Charge ID",
+              "nl": "Laad ID"
+            },
+            "placeholder": {
+              "en": "ABC22DK112233 or leave empty",
+              "nl": "ABC22DK112233 of laat leeg"
+            }
+          }
+        ]
+      },
+      {
+        "id": "enable_plug_and_charge",
+        "title": {
+          "en": "Enable Plug & Charge mode",
+          "nl": "Activeer Plug & Charge modus"
+        },
+        "titleFormatted": {
+          "en": "Enable Plug & Charge mode with ID [[chargeid]]",
+          "nl": "Activeer Plug & Charge modus met ID [[chargeid]]"
+        },
+        "hint": {
+          "en": "Sets auth mode to Plug & Charge (0) and sets the Plug & Charge ID in one action.",
+          "nl": "Zet authenticatie modus naar Plug & Charge (0) en stelt het Plug & Charge ID in één actie in."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=chargepoint"
+          },
+          {
+            "type": "text",
+            "name": "chargeid",
+            "title": {
+              "en": "Charge ID",
+              "nl": "Laad ID"
+            },
+            "placeholder": {
+              "en": "ABC22DK112233",
+              "nl": "ABC22DK112233"
+            }
+          }
+        ]
+      },
+      {
+        "id": "enable_rfid",
+        "title": {
+          "en": "Enable RFID mode",
+          "nl": "Activeer RFID modus"
+        },
+        "titleFormatted": {
+          "en": "Enable RFID mode",
+          "nl": "Activeer RFID modus"
+        },
+        "hint": {
+          "en": "Sets auth mode to RFID (2) and clears the Plug & Charge ID in one action.",
+          "nl": "Zet authenticatie modus naar RFID (2) en wist het Plug & Charge ID in één actie."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=chargepoint"
           }
         ]
       },

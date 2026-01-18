@@ -1,5 +1,6 @@
 // lib/alfenProps.ts
 import { Cap, type CapabilityId } from './homeyCapabilities';
+
 /** Which socket/device instance (Homey device) we are polling. */
 export type SocketIndex = 1 | 2;
 
@@ -33,9 +34,7 @@ export function normalizeApiId(id: string): string {
 
 /** Build comma-separated `ids=` parameter value. */
 export function buildIds(propIds: ReadonlyArray<PropId>): string {
-  return propIds
-    .map((p) => (typeof p === 'number' ? propIdToApiId(p) : p))
-    .join(',');
+  return propIds.map((p) => (typeof p === 'number' ? propIdToApiId(p) : p)).join(',');
 }
 
 /**
@@ -67,13 +66,14 @@ export const alfenProps = {
     //AlfenGeneralPropId
     temperatureInternal: 0x220100, // °C
     authMode: 0x212600, //Authorization mode
-    stationLimit: 0x206200 //station maximum current (A)
+    chargeID: 0x206300, //Plug & Charge ID
+    stationLimit: 0x206200, //station maximum current (A)
   },
   solar: {
     //(only Single, not on Duo)
-    chargeType: 0x328001,  // Operation Mode 
-    greenShare: 0x328002,  //Geen Share 
-    comfortChargeLevel: 0x328003  //comfort Level 
+    chargeType: 0x328001, // Operation Mode
+    greenShare: 0x328002, //Geen Share
+    comfortChargeLevel: 0x328003, //comfort Level
   },
   status: {
     //chargerStatus: 0x100100,
@@ -87,25 +87,24 @@ export const alfenProps = {
       1: 0x250102,
       2: 0x250202,
     },
-  }, 
+  },
   // Socket-1 base values (socket-2 computed via forSocket)
   socketBase: {
-    
     currentLimit: 0x212900, // A
 
     //Socket 1 values, for socket wil be calc
     voltageL1: 0x222103, // V
     voltageL2: 0x222104, // V
     voltageL3: 0x222105, // V
-    
-    currentL1: 0x22210A, // A
-    currentL2: 0x22210B, // A
-    currentL3: 0x22210C, // A
+
+    currentL1: 0x22210a, // A
+    currentL2: 0x22210b, // A
+    currentL3: 0x22210c, // A
 
     powerRealL1: 0x222113, // kW
     powerRealL2: 0x222114, // kW
     powerRealL3: 0x222115, // kW
-    powerRealTotal: 0x222116,  // kW
+    powerRealTotal: 0x222116, // kW
 
     energyDeliveredTotal: 0x222122, // kWh
 
@@ -113,9 +112,7 @@ export const alfenProps = {
     energyConsumedL2: 0x222124,
     energyConsumedL3: 0x222125,
     energyConsumedTotal: 0x222126,
-
- },
- 
+  },
 } as const;
 
 /**
@@ -131,29 +128,15 @@ export function getActualValuePropIds(socketIndex: SocketIndex): PropId[] {
   const s = alfenProps.socketBase;
 
   // Shared / station-wide (not socket dependent)
-  const shared: PropId[] = [
-    alfenProps.general.temperatureInternal,
-    alfenProps.general.stationLimit,
-    alfenProps.general.authMode,
-  ];
+  const shared: PropId[] = [alfenProps.general.temperatureInternal, alfenProps.general.stationLimit, alfenProps.general.authMode, alfenProps.general.chargeID];
 
   // Solar / GreenShare: ONLY for socket 1
-  const solarSocket1Only: PropId[] = [
-    alfenProps.solar.chargeType,
-    alfenProps.solar.greenShare,
-    alfenProps.solar.comfortChargeLevel,
-  ];
+  const solarSocket1Only: PropId[] = [alfenProps.solar.chargeType, alfenProps.solar.greenShare, alfenProps.solar.comfortChargeLevel];
 
   // Explicit status ids per socket
-  const statusSocket1: PropId[] = [
-    alfenProps.status.deviceState[1],
-    alfenProps.status.operatingMode[1],
-  ];
+  const statusSocket1: PropId[] = [alfenProps.status.deviceState[1], alfenProps.status.operatingMode[1]];
 
-  const statusSocket2: PropId[] = [
-    alfenProps.status.deviceState[2],
-    alfenProps.status.operatingMode[2],
-  ];
+  const statusSocket2: PropId[] = [alfenProps.status.deviceState[2], alfenProps.status.operatingMode[2]];
 
   // Numeric meter candidates (socket 1 ids).
   // For socket 2 we transform them via forSocket(id, 2).
@@ -183,24 +166,14 @@ export function getActualValuePropIds(socketIndex: SocketIndex): PropId[] {
   ];
 
   if (socketIndex === 1) {
-    return unique([
-      ...shared,
-      ...solarSocket1Only,
-      ...statusSocket1,
-      ...meterCandidates,
-    ]);
+    return unique([...shared, ...solarSocket1Only, ...statusSocket1, ...meterCandidates]);
   }
 
   // Socket 2+: no solar/greenshare
   const meterSocket2: PropId[] = meterCandidates.map((id) => forSocket(id, 2));
 
-  return unique([
-    ...shared,
-    ...statusSocket2,
-    ...meterSocket2,
-  ]);
+  return unique([...shared, ...statusSocket2, ...meterSocket2]);
 }
-
 
 /**
  * Map api prop-ids to Homey capabilities.
@@ -215,11 +188,12 @@ export function getCapabilityMap(socketIndex: SocketIndex): Record<string, Capab
     // Status code (numeriek) -> operatingmode (string) + derived
     [propIdToApiId(alfenProps.general.stationLimit)]: Cap.StationLimit,
     [propIdToApiId(alfenProps.general.authMode)]: Cap.AuthMode,
+    [propIdToApiId(alfenProps.general.chargeID)]: Cap.ChargeID,
     [propIdToApiId(alfenProps.solar.chargeType)]: Cap.ChargeType,
     [propIdToApiId(alfenProps.solar.greenShare)]: Cap.GreenShare,
     [propIdToApiId(alfenProps.solar.comfortChargeLevel)]: Cap.ComfortChargeLevel,
- 
-    [propIdToApiId(alfenProps.status.operatingMode[socketIndex])]:Cap.OperatingMode,
+
+    [propIdToApiId(alfenProps.status.operatingMode[socketIndex])]: Cap.OperatingMode,
     [propIdToApiId(forSocket(s.currentLimit, socketIndex))]: Cap.CurrentLimit,
 
     [propIdToApiId(forSocket(s.voltageL1, socketIndex))]: Cap.MeasureVoltageL1,
@@ -233,5 +207,4 @@ export function getCapabilityMap(socketIndex: SocketIndex): Record<string, Capab
     [propIdToApiId(forSocket(s.powerRealTotal, socketIndex))]: Cap.MeasurePower,
     [propIdToApiId(forSocket(s.energyDeliveredTotal, socketIndex))]: Cap.MeterPower,
   };
-
 }

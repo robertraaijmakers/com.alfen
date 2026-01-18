@@ -60,26 +60,20 @@ module.exports = class MyDriver extends Homey.Driver {
         await alfenApi.apiLogin();
       } catch (error) {
         this.log(error);
-        throw new Error(
-          'Error logging in to charger, note that your Homey should be on the same subnet as your charger. This is a fysical limitation by Alfen. Error: ' +
-          error,
-        );
+        throw new Error('Error logging in to charger, note that your Homey should be on the same subnet as your charger. This is a fysical limitation by Alfen. Error: ' + error);
       }
 
       try {
         const details = await alfenApi.apiGetChargerDetails();
 
-        this.infoData = details.info;           // InfoResponse
-        this.socketsInfo = details.sockets;     // Parsed sockets info
+        this.infoData = details.info; // InfoResponse
+        this.socketsInfo = details.sockets; // Parsed sockets info
 
         await alfenApi.apiLogout();
         this.log(details);
       } catch (error) {
         this.log(error);
-        throw new Error(
-          "Login was successful, but couldn't retrieve charge information. Your charger is probably not supported or has firmware incompatible with this Homey app. Error: " +
-          error,
-        );
+        throw new Error("Login was successful, but couldn't retrieve charge information. Your charger is probably not supported or has firmware incompatible with this Homey app. Error: " + error);
       }
 
       return true;
@@ -104,13 +98,17 @@ module.exports = class MyDriver extends Homey.Driver {
 
       const sockets = this.socketsInfo;
       const socketCount = sockets?.numberOfSockets ?? 1;
-      
+
       // If we don't know sockets yet -> behave like single to be safe
       if (!sockets || sockets.numberOfSockets === 1) {
         devicesList.push({
           name: baseName,
           data: {
-            id: `${baseId}-S1`, // <-- alleen identity
+            id: `${baseId}`,
+            model,
+            type,
+            fwVersion,
+            contentType,
           },
           settings: {
             ip: this.#ip,
@@ -118,11 +116,6 @@ module.exports = class MyDriver extends Homey.Driver {
             password: this.#password,
             socketIndex: 1,
             socketCount,
-            // optioneel: bewaren als settings (niet in data)
-            model,
-            type,
-            fwVersion,
-            contentType,
           },
         });
 
@@ -134,7 +127,11 @@ module.exports = class MyDriver extends Homey.Driver {
         {
           name: `${baseName} (Socket 1)`,
           data: {
-            id: `${baseId}-S1`, // <-- alleen identity
+            id: `${baseId}`,
+            model,
+            type,
+            fwVersion,
+            contentType,
           },
           settings: {
             ip: this.#ip,
@@ -142,17 +139,16 @@ module.exports = class MyDriver extends Homey.Driver {
             password: this.#password,
             socketIndex: 1,
             socketCount,
-            // optioneel: bewaren als settings (niet in data)
-            model,
-            type,
-            fwVersion,
-            contentType,
           },
         },
         {
           name: `${baseName} (Socket 2)`,
           data: {
-            id: `${baseId}-S2`, // <-- alleen identity
+            id: `${baseId}-S2`,
+            model,
+            type,
+            fwVersion,
+            contentType,
           },
           settings: {
             ip: this.#ip,
@@ -160,17 +156,11 @@ module.exports = class MyDriver extends Homey.Driver {
             password: this.#password,
             socketIndex: 2,
             socketCount,
-            // optioneel: bewaren als settings (niet in data)
-            model,
-            type,
-            fwVersion,
-            contentType,
           },
         },
       );
 
       return devicesList;
-
     });
   }
 };

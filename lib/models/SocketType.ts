@@ -30,7 +30,7 @@ export function parseChargerSocketsInfo(typeStr: string | undefined): ChargerSoc
     return { numberOfSockets: 1, socketType1: SocketType.Mennekes };
   }
 
-  const parts = typeStr.split('.').map(p => p.trim());
+  const parts = typeStr.split('.').map((p) => p.trim());
   const x = Number(parts[0]);
   const y = Number(parts[1]);
   const z = Number(parts[2]);
