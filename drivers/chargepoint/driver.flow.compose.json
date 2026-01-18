@@ -24,6 +24,24 @@
                     "example": 2500
                 }
             ]
+        },
+        {
+            "id": "chargetype_changed",
+            "title": {
+                "en": "Charge mode changed",
+                "nl": "Manier van laden veranderd"
+            },
+            "tokens": [
+                {
+                    "name": "chargetype",
+                    "type": "string",
+                    "title": {
+                        "en": "Charge mode",
+                        "nl": "Manier van laden"
+                    },
+                    "example": "1"
+                }
+            ]
         }
     ],
     "actions": [
@@ -71,7 +89,7 @@
                         "nl": "Comfort laadniveau"
                     },
                     "min": 1400,
-                    "max": 5000,
+                    "max": 11000,
                     "step": 1,
                     "label": "W"
                 }

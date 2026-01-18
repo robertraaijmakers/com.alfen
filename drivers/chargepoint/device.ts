@@ -194,6 +194,14 @@ module.exports = class MyDevice extends Homey.Device {
             .trigger(this, { comfortchargelevel: value })
             .catch((error: Error) => this.error('Error triggering comfortchargelevel_changed flow:', error));
         }
+
+        // Trigger flow card for charge type changes
+        if (capabilityId === 'chargetype') {
+          this.homey.flow
+            .getDeviceTriggerCard('chargetype_changed')
+            .trigger(this, { chargetype: value })
+            .catch((error: Error) => this.error('Error triggering chargetype_changed flow:', error));
+        }
       } catch (error) {
         this.error(`Error updating capability ${capabilityId}:`, error);
       }

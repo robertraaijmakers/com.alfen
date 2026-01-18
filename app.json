@@ -95,6 +95,31 @@
             "filter": "driver_id=chargepoint"
           }
         ]
+      },
+      {
+        "id": "chargetype_changed",
+        "title": {
+          "en": "Charge mode changed",
+          "nl": "Manier van laden veranderd"
+        },
+        "tokens": [
+          {
+            "name": "chargetype",
+            "type": "string",
+            "title": {
+              "en": "Charge mode",
+              "nl": "Manier van laden"
+            },
+            "example": "1"
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=chargepoint"
+          }
+        ]
       }
     ],
     "actions": [
@@ -152,7 +177,7 @@
               "nl": "Comfort laadniveau"
             },
             "min": 1400,
-            "max": 5000,
+            "max": 11000,
             "step": 1,
             "label": "W"
           }
@@ -633,7 +658,7 @@
       "getable": true,
       "setable": true,
       "min": 1400,
-      "max": 5000,
+      "max": 11000,
       "step": 1,
       "decimals": 0,
       "uiComponent": "sensor",

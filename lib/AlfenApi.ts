@@ -297,7 +297,7 @@ export class AlfenApi {
   }
 
   async apiSetComfortChargeLevel(comfortChargingkWh: number) {
-    if (comfortChargingkWh < 1400 || comfortChargingkWh > 5000) return false;
+    if (comfortChargingkWh < 1400 || comfortChargingkWh > 11000) return false;
 
     // Define the request body
     const body = JSON.stringify({
