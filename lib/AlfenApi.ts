@@ -98,6 +98,14 @@ export class AlfenApi {
     if (this.#retrieving > 0) return;
     if (this.#retrieving < 0) this.#retrieving = 0;
 
+    // Nothing to tear down. This happens when a prior apiLogin() threw
+    // (which already nulled #agent); we must not attempt an HTTPS call
+    // against a null pool.
+    if (!this.#agent) {
+      this.#log('No active session, logout skipped.');
+      return;
+    }
+
     this.#log(`Logout procedure, logout & clean-up agent.`);
 
     // Define the options for the HTTPS request
@@ -176,7 +184,13 @@ export class AlfenApi {
       throw new Error(`Request failed: ${error}`);
     }
 
-    if (bodyResult === undefined) return capabilitiesData;
+    // A successful HTTP 200 but missing/malformed body means the session is
+    // live but the charger returned something we cannot parse. Treat as an
+    // error so the caller can invalidate and retry; silently returning [] here
+    // would leave Homey showing stale capability values indefinitely.
+    if (bodyResult === undefined || !Array.isArray(bodyResult?.properties)) {
+      throw new Error('apiGetActualValues: unexpected response body (no properties array).');
+    }
 
     // Handle the response
     const result = bodyResult.properties;
@@ -409,7 +423,11 @@ export class AlfenApi {
       requestOptions.headers = { Connection: 'keep-alive', ...requestOptions.headers };
     }
 
-    const res = await this.#agent!.request({
+    if (!this.#agent) {
+      throw new Error('No active session: apiLogin() required before making requests.');
+    }
+
+    const res = await this.#agent.request({
       path: requestOptions.path,
       method: requestOptions.method,
       headers: {
