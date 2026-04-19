@@ -9,7 +9,7 @@ import { HttpsPromiseOptions, HttpsPromiseResponse, PropertyResponseBody } from 
 import { InfoResponse } from './models/InfoResponse';
 import { ChargerSocketsInfo, SocketType, parseChargerSocketsInfo } from './models/SocketType';
 import { ChargerDetails } from './models/ChargerDetails';
-import { SocketIndex, buildIds, getActualValuePropIds, getCapabilityMap, normalizeApiId } from './alfenProps';
+import { SocketIndex, alfenProps, buildIds, forSocket, getActualValuePropIds, getCapabilityMap, normalizeApiId, propIdToApiId } from './alfenProps';
 import { Cap, type CapabilityId } from './homeyCapabilities';
 
 const apiHeader: string = 'alfen/json; charset=utf-8';
@@ -238,13 +238,16 @@ export class AlfenApi {
     return capabilitiesData;
   }
 
-  async apiSetCurrentLimit(currentLimit: number) {
+  async apiSetCurrentLimit(currentLimit: number, socketIndex: SocketIndex = 1) {
     if (currentLimit < 1 || currentLimit > 32) return false;
+
+    // Socket 1 -> "2129_0"; Socket 2 -> "3129_0" (see alfenProps.forSocket)
+    const apiId = propIdToApiId(forSocket(alfenProps.socketBase.currentLimit, socketIndex));
 
     // Define the request body
     const body = JSON.stringify({
-      '2129_0': {
-        id: '2129_0',
+      [apiId]: {
+        id: apiId,
         value: currentLimit,
       },
     });
@@ -252,7 +255,7 @@ export class AlfenApi {
     try {
       await this.#apiSetProperty(body);
     } catch (e) {
-      throw new Error(`Error setting current limit: ${e}`);
+      throw new Error(`Error setting current limit (socket ${socketIndex}): ${e}`);
     }
 
     return true;

@@ -377,11 +377,11 @@ module.exports = class MyDevice extends Homey.Device {
   }
 
   async #setCurrentLimit(value: number) {
-    this.log('setCurrentLimit', value);
+    this.log('setCurrentLimit', value, 'socket', this.socketIndex);
 
     try {
       await this.alfenApi.apiLogin();
-      await this.alfenApi.apiSetCurrentLimit(value);
+      await this.alfenApi.apiSetCurrentLimit(value, this.socketIndex);
     } catch (error) {
       this.log('Error setting current limit:', error);
       throw new Error(`${error}`);
