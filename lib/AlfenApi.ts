@@ -488,8 +488,10 @@ export class AlfenApi {
       if (capabilityId.startsWith('measure_current')) return { value: Math.round(v * 10) / 10 };
 
       if (capabilityId.startsWith('measure_power')) {
-        const watts = v > 0 && v <= 200 ? v * 1000 : v;
-        return { value: Math.round(watts * 10) / 10 };
+        // Alfen returns real power in Watts (property 2221_16 and its per-phase variants).
+        // A previous heuristic multiplied small values by 1000, which turned idle
+        // standby (~5 W) into a ghost 5 kW reading on the dashboard. See issue #24.
+        return { value: Math.round(v * 10) / 10 };
       }
 
       if (capabilityId === Cap.MeterPower) return { value: Math.round(v / 10) / 100 };

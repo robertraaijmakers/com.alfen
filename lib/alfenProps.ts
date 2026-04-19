@@ -101,10 +101,10 @@ export const alfenProps = {
     currentL2: 0x22210b, // A
     currentL3: 0x22210c, // A
 
-    powerRealL1: 0x222113, // kW
-    powerRealL2: 0x222114, // kW
-    powerRealL3: 0x222115, // kW
-    powerRealTotal: 0x222116, // kW
+    powerRealL1: 0x222113, // W
+    powerRealL2: 0x222114, // W
+    powerRealL3: 0x222115, // W
+    powerRealTotal: 0x222116, // W
 
     energyDeliveredTotal: 0x222122, // kWh
 
