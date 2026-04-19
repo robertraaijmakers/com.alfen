@@ -228,6 +228,10 @@ module.exports = class MyDevice extends Homey.Device {
     this.registerCapabilityListener('chargeid', async (value) => {
       await this.#setChargeID(value);
     });
+
+    this.registerCapabilityListener('measure_current.limit', async (value) => {
+      await this.#setCurrentLimit(Number(value));
+    });
   }
 
   async #registerFlowCardListeners() {
