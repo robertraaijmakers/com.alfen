@@ -106,7 +106,9 @@ export const alfenProps = {
     powerRealL3: 0x222115, // W
     powerRealTotal: 0x222116, // W
 
-    energyDeliveredTotal: 0x222122, // kWh
+    // Alfen returns this in Wh; AlfenApi.#normalizeCapabilityValue divides by 1000 for Homey's meter_power (kWh).
+    // Verified against leeyuentuen/alfen_wallbox (sensor.py, prop "2221_22": "meter_reading from w to kWh" -> prop[VALUE] / 1000).
+    energyDeliveredTotal: 0x222122, // Wh
 
     energyConsumedL1: 0x222123,
     energyConsumedL2: 0x222124,

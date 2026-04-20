@@ -95,11 +95,14 @@ module.exports = class MyDevice extends Homey.Device {
 
     try {
       await this.alfenApi.apiLogin();
-      result = await this.alfenApi.apiGetActualValues(this.socketIndex);
+      try {
+        result = await this.alfenApi.apiGetActualValues(this.socketIndex);
+      } finally {
+        // Only logout when login actually succeeded.
+        await this.alfenApi.apiLogout();
+      }
     } catch (error) {
       this.log('Error refreshing device:', error);
-    } finally {
-      await this.alfenApi.apiLogout();
     }
 
     if (result == null) return;
@@ -147,8 +150,35 @@ module.exports = class MyDevice extends Homey.Device {
 
     this.socketIndex = Number(settings.socketIndex ?? 1) === 2 ? 2 : 1;
 
+    // Close the previous session before replacing the client, otherwise the old
+    // undici Pool stays alive and the charger sees a stale logged-in session.
+    if (this.alfenApi) {
+      try {
+        await this.alfenApi.apiLogout();
+      } catch (err) {
+        this.log('Logout of previous AlfenApi failed (ignored):', err);
+      }
+    }
+
     this.alfenApi = new AlfenApi(this.log, settings.ip, settings.username, settings.password);
     this.log(`Using socketIndex: ${this.socketIndex}`);
+  }
+
+  /**
+   * onDeleted is called when the user deletes the device.
+   */
+  async onDeleted() {
+    if (this.currentInterval) {
+      clearInterval(this.currentInterval);
+      this.currentInterval = null;
+    }
+    if (this.alfenApi) {
+      try {
+        await this.alfenApi.apiLogout();
+      } catch (err) {
+        this.log('Logout on delete failed (ignored):', err);
+      }
+    }
   }
 
   /**
@@ -158,13 +188,6 @@ module.exports = class MyDevice extends Homey.Device {
    */
   async onRenamed(name: string) {
     this.log('MyDevice was renamed');
-  }
-
-  /**
-   * onDeleted is called when the user deleted the device.
-   */
-  async onDeleted() {
-    this.log('MyDevice has been deleted');
   }
 
   /** Helper Functions */
