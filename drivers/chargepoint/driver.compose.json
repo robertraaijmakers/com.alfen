@@ -23,6 +23,8 @@
     "measure_power.l3",
     "measure_current.limit",
     "measure_current.stationlimit",
+    "measure_current.activelb",
+    "measure_frequency",
     "greenshare",
     "comfortchargelevel",
     "chargetype",
@@ -65,6 +67,18 @@
       "title": {
         "en": "Current Limit Station",
         "nl": "Stroomsterkte Limiet Station"
+      }
+    },
+    "measure_current.activelb": {
+      "title": {
+        "en": "Active load-balancing limit",
+        "nl": "Actieve load-balancing limiet"
+      }
+    },
+    "measure_frequency": {
+      "title": {
+        "en": "Grid frequency",
+        "nl": "Netfrequentie"
       }
     },
     "measure_voltage.l1": {

@@ -29,6 +29,9 @@ export const Cap = {
 
   CurrentLimit: 'measure_current.limit',
   StationLimit: 'measure_current.stationlimit',
+  CurrentActiveLb: 'measure_current.activelb',
+
+  MeasureFrequency: 'measure_frequency',
 } as const;
 
 export type CapabilityId = (typeof Cap)[keyof typeof Cap];
