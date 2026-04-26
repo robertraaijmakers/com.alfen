@@ -273,6 +273,36 @@
                     "label": "A"
                 }
             ]
+        },
+        {
+            "id": "pause_charging",
+            "title": {
+                "en": "Pause charging",
+                "nl": "Laden pauzeren"
+            },
+            "titleFormatted": {
+                "en": "Pause charging",
+                "nl": "Laden pauzeren"
+            },
+            "hint": {
+                "en": "Sets operative mode to In-operative (prop 205F_0 = 2). Station-wide; pauses all sockets. Use for price-driven charging without changing current limit.",
+                "nl": "Zet operative mode op In-operative (prop 205F_0 = 2). Station-wide; pauzeert alle sockets. Bruikbaar voor prijsgestuurd laden zonder de stroomlimiet te wijzigen."
+            }
+        },
+        {
+            "id": "resume_charging",
+            "title": {
+                "en": "Resume charging",
+                "nl": "Laden hervatten"
+            },
+            "titleFormatted": {
+                "en": "Resume charging",
+                "nl": "Laden hervatten"
+            },
+            "hint": {
+                "en": "Sets operative mode back to Operative (prop 205F_0 = 0). Station-wide; resumes all sockets.",
+                "nl": "Zet operative mode terug op Operative (prop 205F_0 = 0). Station-wide; hervat alle sockets."
+            }
         }
     ]
 }

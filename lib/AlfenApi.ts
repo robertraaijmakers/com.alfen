@@ -369,6 +369,28 @@ export class AlfenApi {
     return true;
   }
 
+  /**
+   * Operative mode (prop 205F_0): 0 = Operative (resume), 2 = In-operative (pause).
+   * Station-wide (not per socket). Mirrors leeyuentuen/alfen_wallbox select.py
+   * OPERATIVE_MODE_DICT.
+   */
+  async apiSetOperativeMode(value: 0 | 2) {
+    const body = JSON.stringify({
+      '205F_0': {
+        id: '205F_0',
+        value,
+      },
+    });
+
+    try {
+      await this.#apiSetProperty(body);
+    } catch (e) {
+      throw new Error(`Error setting operative mode: ${e}`);
+    }
+
+    return true;
+  }
+
   async apiRebootEvCharger() {
     // Define the request body
     const body = JSON.stringify({

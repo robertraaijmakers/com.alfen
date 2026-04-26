@@ -297,6 +297,16 @@ module.exports = class MyDevice extends Homey.Device {
       this.log('Flow card action', args, state);
       await this.#setCurrentLimit(args.limit);
     });
+
+    this.homey.flow.getActionCard('pause_charging').registerRunListener(async (args, state) => {
+      this.log('Flow card action: pause_charging', args, state);
+      await this.#pauseCharging();
+    });
+
+    this.homey.flow.getActionCard('resume_charging').registerRunListener(async (args, state) => {
+      this.log('Flow card action: resume_charging', args, state);
+      await this.#resumeCharging();
+    });
   }
 
   async #setChargeType(value: string) {
@@ -411,6 +421,38 @@ module.exports = class MyDevice extends Homey.Device {
       await this.alfenApi.apiSetCurrentLimit(value, this.socketIndex);
     } catch (error) {
       this.log('Error setting current limit:', error);
+      throw new Error(`${error}`);
+    } finally {
+      await this.alfenApi.apiLogout();
+    }
+
+    return true;
+  }
+
+  async #pauseCharging() {
+    this.log('pauseCharging');
+
+    try {
+      await this.alfenApi.apiLogin();
+      await this.alfenApi.apiSetOperativeMode(2);
+    } catch (error) {
+      this.log('Error pausing charging:', error);
+      throw new Error(`${error}`);
+    } finally {
+      await this.alfenApi.apiLogout();
+    }
+
+    return true;
+  }
+
+  async #resumeCharging() {
+    this.log('resumeCharging');
+
+    try {
+      await this.alfenApi.apiLogin();
+      await this.alfenApi.apiSetOperativeMode(0);
+    } catch (error) {
+      this.log('Error resuming charging:', error);
       throw new Error(`${error}`);
     } finally {
       await this.alfenApi.apiLogout();
