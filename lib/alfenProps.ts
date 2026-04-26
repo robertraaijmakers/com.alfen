@@ -88,6 +88,13 @@ export const alfenProps = {
       2: 0x250202,
     },
   },
+  smartMeter: {
+    // P1 / external smart-meter currents per phase (Ampere). Station-wide.
+    // HA: api_param "212F_1" / "212F_2" / "212F_3" (sensor.py:553-577).
+    p1CurrentL1: 0x212f01,
+    p1CurrentL2: 0x212f02,
+    p1CurrentL3: 0x212f03,
+  },
   // Socket-1 base values (socket-2 computed via forSocket)
   socketBase: {
     currentLimit: 0x212900, // A
@@ -130,7 +137,15 @@ export function getActualValuePropIds(socketIndex: SocketIndex): PropId[] {
   const s = alfenProps.socketBase;
 
   // Shared / station-wide (not socket dependent)
-  const shared: PropId[] = [alfenProps.general.temperatureInternal, alfenProps.general.stationLimit, alfenProps.general.authMode, alfenProps.general.chargeID];
+  const shared: PropId[] = [
+    alfenProps.general.temperatureInternal,
+    alfenProps.general.stationLimit,
+    alfenProps.general.authMode,
+    alfenProps.general.chargeID,
+    alfenProps.smartMeter.p1CurrentL1,
+    alfenProps.smartMeter.p1CurrentL2,
+    alfenProps.smartMeter.p1CurrentL3,
+  ];
 
   // Solar / GreenShare: ONLY for socket 1
   const solarSocket1Only: PropId[] = [alfenProps.solar.chargeType, alfenProps.solar.greenShare, alfenProps.solar.comfortChargeLevel];
@@ -208,5 +223,10 @@ export function getCapabilityMap(socketIndex: SocketIndex): Record<string, Capab
 
     [propIdToApiId(forSocket(s.powerRealTotal, socketIndex))]: Cap.MeasurePower,
     [propIdToApiId(forSocket(s.energyDeliveredTotal, socketIndex))]: Cap.MeterPower,
+
+    // P1 / external smart-meter currents per phase (station-wide; same prop-id on socket-1 & socket-2 devices)
+    [propIdToApiId(alfenProps.smartMeter.p1CurrentL1)]: Cap.P1CurrentL1,
+    [propIdToApiId(alfenProps.smartMeter.p1CurrentL2)]: Cap.P1CurrentL2,
+    [propIdToApiId(alfenProps.smartMeter.p1CurrentL3)]: Cap.P1CurrentL3,
   };
 }

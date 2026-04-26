@@ -29,6 +29,10 @@ export const Cap = {
 
   CurrentLimit: 'measure_current.limit',
   StationLimit: 'measure_current.stationlimit',
+
+  P1CurrentL1: 'measure_current.p1l1',
+  P1CurrentL2: 'measure_current.p1l2',
+  P1CurrentL3: 'measure_current.p1l3',
 } as const;
 
 export type CapabilityId = (typeof Cap)[keyof typeof Cap];
