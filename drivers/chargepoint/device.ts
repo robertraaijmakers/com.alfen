@@ -297,6 +297,11 @@ module.exports = class MyDevice extends Homey.Device {
       this.log('Flow card action', args, state);
       await this.#setCurrentLimit(args.limit);
     });
+
+    this.homey.flow.getActionCard('reboot_wallbox').registerRunListener(async (args, state) => {
+      this.log('Flow card action: reboot_wallbox', args, state);
+      await this.#rebootWallbox();
+    });
   }
 
   async #setChargeType(value: string) {
@@ -411,6 +416,22 @@ module.exports = class MyDevice extends Homey.Device {
       await this.alfenApi.apiSetCurrentLimit(value, this.socketIndex);
     } catch (error) {
       this.log('Error setting current limit:', error);
+      throw new Error(`${error}`);
+    } finally {
+      await this.alfenApi.apiLogout();
+    }
+
+    return true;
+  }
+
+  async #rebootWallbox() {
+    this.log('rebootWallbox');
+
+    try {
+      await this.alfenApi.apiLogin();
+      await this.alfenApi.apiRebootEvCharger();
+    } catch (error) {
+      this.log('Error rebooting wallbox:', error);
       throw new Error(`${error}`);
     } finally {
       await this.alfenApi.apiLogout();
