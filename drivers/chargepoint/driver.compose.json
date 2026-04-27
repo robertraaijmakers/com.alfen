@@ -28,7 +28,8 @@
     "greenshare",
     "comfortchargelevel",
     "chargetype",
-    "authmode"
+    "authmode",
+    "chargeid"
   ],
   "energy": {
     "evCharger": true,
@@ -109,6 +110,12 @@
       "title": {
         "en": "Power L3",
         "nl": "Power L3"
+      }
+    },
+    "chargeid": {
+      "title": {
+        "en": "Charge ID",
+        "nl": "Laad ID"
       }
     }
   },

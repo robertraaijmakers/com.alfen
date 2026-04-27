@@ -30,9 +30,6 @@ module.exports = class MyDevice extends Homey.Device {
       await this.#removeSolarCapabilitiesForDuo();
     }
 
-    // Backwards compatibility: add chargeid capability if it doesn't exist
-    await this.#ensureRequiredCapabilities();
-
     this.alfenApi = new AlfenApi(this.log, settings.ip, settings.username, settings.password);
 
     this.log(`Using socketIndex: ${this.socketIndex}`);
@@ -62,28 +59,6 @@ module.exports = class MyDevice extends Homey.Device {
           this.log(`Removed capability (Duo): ${cap}`);
         } catch (err) {
           this.error(`Failed removing capability ${cap}:`, err);
-        }
-      }
-    }
-  }
-
-  /**
-   * Backwards compatibility: Ensure required capabilities exist.
-   * This adds the chargeid capability to existing devices that were created before this feature.
-   * Note: chargeid is station-wide (device-level), not per-socket, so it's added to all devices.
-   */
-  async #ensureRequiredCapabilities(): Promise<void> {
-    const requiredCapabilities = [
-      'chargeid', // Plug & Charge ID (station-wide, not per-socket)
-    ];
-
-    for (const cap of requiredCapabilities) {
-      if (!this.hasCapability(cap)) {
-        try {
-          await this.addCapability(cap);
-          this.log(`Added missing capability (backwards compatibility): ${cap}`);
-        } catch (err) {
-          this.error(`Failed adding capability ${cap}:`, err);
         }
       }
     }
@@ -206,7 +181,7 @@ module.exports = class MyDevice extends Homey.Device {
 
         if (value === null || (typeof deviceState !== 'undefined' && typeof deviceState[capabilityId] !== 'undefined' && deviceState[capabilityId] === value)) continue;
 
-        await this.setCapabilityValue(capabilityId, value)
+        await this.setCapabilityValue(capabilityId, value ?? '')
           .catch((error) => this.error(`Error updating capability ${capabilityId} with value ${value}: `, error))
           .then(() => this.log(`Update capability: ${capabilityId} with value ${value}`));
 

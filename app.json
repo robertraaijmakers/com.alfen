@@ -1,7 +1,7 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.alfen",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
@@ -449,7 +449,8 @@
         "greenshare",
         "comfortchargelevel",
         "chargetype",
-        "authmode"
+        "authmode",
+        "chargeid"
       ],
       "energy": {
         "evCharger": true,
@@ -530,6 +531,12 @@
           "title": {
             "en": "Power L3",
             "nl": "Power L3"
+          }
+        },
+        "chargeid": {
+          "title": {
+            "en": "Charge ID",
+            "nl": "Laad ID"
           }
         }
       },
@@ -642,6 +649,17 @@
       "uiComponent": "sensor",
       "uiQuickAction": false,
       "icon": "/assets/icon.svg"
+    },
+    "chargeid": {
+      "type": "string",
+      "title": {
+        "en": "Charge ID",
+        "nl": "Laad ID"
+      },
+      "getable": true,
+      "setable": true,
+      "uiQuickAction": false,
+      "icon": "/assets/chargeid.svg"
     },
     "chargetype": {
       "type": "enum",
