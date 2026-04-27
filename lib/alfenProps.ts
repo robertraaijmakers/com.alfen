@@ -88,18 +88,27 @@ export const alfenProps = {
       2: 0x250202,
     },
   },
+  loadbalancing: {
+    // Active LB max current per socket (Ampere). HA: api_param "212C_0" / "212D_0".
+    activeMaxCurrent: {
+      1: 0x212c00,
+      2: 0x212d00,
+    },
+  },
   // Socket-1 base values (socket-2 computed via forSocket)
   socketBase: {
     currentLimit: 0x212900, // A
 
     //Socket 1 values, for socket wil be calc
-    voltageL1: 0x222103, // V
-    voltageL2: 0x222104, // V
-    voltageL3: 0x222105, // V
-
     currentL1: 0x22210a, // A
     currentL2: 0x22210b, // A
     currentL3: 0x22210c, // A
+
+    frequency: 0x222112, // Hz (HA api_param "2221_12")
+
+    voltageL1: 0x222103, // V
+    voltageL2: 0x222104, // V
+    voltageL3: 0x222105, // V
 
     powerRealL1: 0x222113, // W
     powerRealL2: 0x222114, // W
@@ -143,6 +152,8 @@ export function getActualValuePropIds(socketIndex: SocketIndex): PropId[] {
   // Numeric meter candidates (socket 1 ids).
   // For socket 2 we transform them via forSocket(id, 2).
   const meterCandidates: number[] = [
+    s.frequency,
+
     s.voltageL1,
     s.voltageL2,
     s.voltageL3,
@@ -167,14 +178,17 @@ export function getActualValuePropIds(socketIndex: SocketIndex): PropId[] {
     s.energyConsumedL3,
   ];
 
+  // Active LB max current (explicit per-socket prop id, NOT via forSocket offset)
+  const lbCurrent: PropId[] = [alfenProps.loadbalancing.activeMaxCurrent[socketIndex]];
+
   if (socketIndex === 1) {
-    return unique([...shared, ...solarSocket1Only, ...statusSocket1, ...meterCandidates]);
+    return unique([...shared, ...solarSocket1Only, ...statusSocket1, ...meterCandidates, ...lbCurrent]);
   }
 
   // Socket 2+: no solar/greenshare
   const meterSocket2: PropId[] = meterCandidates.map((id) => forSocket(id, 2));
 
-  return unique([...shared, ...statusSocket2, ...meterSocket2]);
+  return unique([...shared, ...statusSocket2, ...meterSocket2, ...lbCurrent]);
 }
 
 /**
@@ -197,6 +211,8 @@ export function getCapabilityMap(socketIndex: SocketIndex): Record<string, Capab
 
     [propIdToApiId(alfenProps.status.operatingMode[socketIndex])]: Cap.OperatingMode,
     [propIdToApiId(forSocket(s.currentLimit, socketIndex))]: Cap.CurrentLimit,
+    [propIdToApiId(alfenProps.loadbalancing.activeMaxCurrent[socketIndex])]: Cap.CurrentActiveLb,
+    [propIdToApiId(forSocket(s.frequency, socketIndex))]: Cap.MeasureFrequency,
 
     [propIdToApiId(forSocket(s.voltageL1, socketIndex))]: Cap.MeasureVoltageL1,
     [propIdToApiId(forSocket(s.voltageL2, socketIndex))]: Cap.MeasureVoltageL2,

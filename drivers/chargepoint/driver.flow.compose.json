@@ -273,6 +273,21 @@
                     "label": "A"
                 }
             ]
+        },
+        {
+            "id": "reboot_wallbox",
+            "title": {
+                "en": "Reboot wallbox",
+                "nl": "Wallbox herstarten"
+            },
+            "titleFormatted": {
+                "en": "Reboot wallbox",
+                "nl": "Wallbox herstarten"
+            },
+            "hint": {
+                "en": "Sends a reboot command via POST /cmd. Interrupts active charging sessions; use during idle only. Useful for recovery after a freeze without restarting the Homey app.",
+                "nl": "Stuurt een reboot-commando via POST /cmd. Onderbreekt actieve laadsessies; alleen gebruiken in idle-toestand. Handig voor recovery na een vastloper zonder de Homey-app te herstarten."
+            }
         }
     ]
 }

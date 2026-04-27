@@ -1,7 +1,7 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.alfen",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
@@ -393,6 +393,28 @@
             "label": "A"
           }
         ]
+      },
+      {
+        "id": "reboot_wallbox",
+        "title": {
+          "en": "Reboot wallbox",
+          "nl": "Wallbox herstarten"
+        },
+        "titleFormatted": {
+          "en": "Reboot wallbox",
+          "nl": "Wallbox herstarten"
+        },
+        "hint": {
+          "en": "Sends a reboot command via POST /cmd. Interrupts active charging sessions; use during idle only. Useful for recovery after a freeze without restarting the Homey app.",
+          "nl": "Stuurt een reboot-commando via POST /cmd. Onderbreekt actieve laadsessies; alleen gebruiken in idle-toestand. Handig voor recovery na een vastloper zonder de Homey-app te herstarten."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=chargepoint"
+          }
+        ]
       }
     ]
   },
@@ -414,6 +436,8 @@
         "measure_current.l1",
         "measure_current.l2",
         "measure_current.l3",
+        "measure_current.activelb",
+        "measure_frequency",
         "measure_voltage.l1",
         "measure_voltage.l2",
         "measure_voltage.l3",
@@ -448,6 +472,12 @@
           "title": {
             "en": "Current L3",
             "nl": "Stroomsterkte L3"
+          }
+        },
+        "measure_current.activelb": {
+          "title": {
+            "en": "Active load-balancing limit",
+            "nl": "Actieve load-balancing limiet"
           }
         },
         "measure_current.limit": {

@@ -395,6 +395,26 @@ export class AlfenApi {
     }
   }
 
+  /**
+   * Operative mode (prop 205F_0): 0 = Operative (resume), 2 = In-operative (pause).
+   */
+  async apiSetOperativeMode(value: 0 | 2) {
+    const body = JSON.stringify({
+      '205F_0': {
+        id: '205F_0',
+        value,
+      },
+    });
+
+    try {
+      await this.#apiSetProperty(body);
+    } catch (e) {
+      throw new Error(`Error setting operative mode: ${e}`);
+    }
+
+    return true;
+  }
+
   async #apiSetProperty(body: string) {
     // Define the options for the HTTPS request
     const options = {

@@ -255,6 +255,16 @@ module.exports = class MyDevice extends Homey.Device {
     this.registerCapabilityListener('measure_current.limit', async (value) => {
       await this.#setCurrentLimit(Number(value));
     });
+
+    this.registerCapabilityListener('evcharger_charging', async (value) => {
+      if (value === true) {
+        await this.#setOperativeMode(0);
+      }
+
+      if (value === false) {
+        await this.#setOperativeMode(2);
+      }
+    });
   }
 
   async #registerFlowCardListeners() {
@@ -297,6 +307,25 @@ module.exports = class MyDevice extends Homey.Device {
       this.log('Flow card action', args, state);
       await this.#setCurrentLimit(args.limit);
     });
+
+    this.homey.flow.getActionCard('reboot_wallbox').registerRunListener(async (args, state) => {
+      this.log('Flow card action: reboot_wallbox', args, state);
+      await this.#rebootWallbox();
+    });
+  }
+
+  async #setOperativeMode(value: 0 | 2) {
+    this.log('setOperativeMode', value);
+
+    try {
+      await this.alfenApi.apiLogin();
+      await this.alfenApi.apiSetOperativeMode(value);
+    } catch (error) {
+      this.log('Error setting charge type:', error);
+      throw new Error(`${error}`);
+    } finally {
+      await this.alfenApi.apiLogout();
+    }
   }
 
   async #setChargeType(value: string) {
@@ -401,6 +430,22 @@ module.exports = class MyDevice extends Homey.Device {
     } finally {
       await this.alfenApi.apiLogout();
     }
+  }
+
+  async #rebootWallbox() {
+    this.log('rebootWallbox');
+
+    try {
+      await this.alfenApi.apiLogin();
+      await this.alfenApi.apiRebootEvCharger();
+    } catch (error) {
+      this.log('Error rebooting wallbox:', error);
+      throw new Error(`${error}`);
+    } finally {
+      await this.alfenApi.apiLogout();
+    }
+
+    return true;
   }
 
   async #setCurrentLimit(value: number) {

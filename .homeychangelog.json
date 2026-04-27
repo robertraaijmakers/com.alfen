@@ -23,5 +23,9 @@
   "2.0.0": {
     "en": "First version to support Alfen charger.",
     "nl": "Eerste versie met ondersteuning voor Alfen Duo lader."
+  },
+  "2.0.1": {
+    "en": "Added some extra capabilities (reboot & start/pause).",
+    "nl": "Eerste versie voor nieuwe opties zoals Reboot & start/pause functionaliteit toegevoegd."
   }
 }
