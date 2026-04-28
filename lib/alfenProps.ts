@@ -68,6 +68,7 @@ export const alfenProps = {
     authMode: 0x212600, //Authorization mode
     chargeID: 0x206300, //Plug & Charge ID
     stationLimit: 0x206200, //station maximum current (A)
+    operativeMode: 0x205f00, // 0 = operative (charging active), 2 = in-operative (paused)
   },
   solar: {
     //(only Single, not on Duo)
@@ -139,7 +140,7 @@ export function getActualValuePropIds(socketIndex: SocketIndex): PropId[] {
   const s = alfenProps.socketBase;
 
   // Shared / station-wide (not socket dependent)
-  const shared: PropId[] = [alfenProps.general.temperatureInternal, alfenProps.general.stationLimit, alfenProps.general.authMode, alfenProps.general.chargeID];
+  const shared: PropId[] = [alfenProps.general.temperatureInternal, alfenProps.general.stationLimit, alfenProps.general.authMode, alfenProps.general.chargeID, alfenProps.general.operativeMode];
 
   // Solar / GreenShare: ONLY for socket 1
   const solarSocket1Only: PropId[] = [alfenProps.solar.chargeType, alfenProps.solar.greenShare, alfenProps.solar.comfortChargeLevel];
@@ -205,6 +206,7 @@ export function getCapabilityMap(socketIndex: SocketIndex): Record<string, Capab
     [propIdToApiId(alfenProps.general.stationLimit)]: Cap.StationLimit,
     [propIdToApiId(alfenProps.general.authMode)]: Cap.AuthMode,
     [propIdToApiId(alfenProps.general.chargeID)]: Cap.ChargeID,
+    [propIdToApiId(alfenProps.general.operativeMode)]: Cap.EvCharging,
     [propIdToApiId(alfenProps.solar.chargeType)]: Cap.ChargeType,
     [propIdToApiId(alfenProps.solar.greenShare)]: Cap.GreenShare,
     [propIdToApiId(alfenProps.solar.comfortChargeLevel)]: Cap.ComfortChargeLevel,

@@ -500,7 +500,12 @@ export class AlfenApi {
     }
 
     if (capabilityId === Cap.EvCharging && typeof v === 'number') {
-      return { value: v === 1 };
+      // Handle different property types that map to evcharger_charging:
+      // - value 1 from some properties -> true
+      // - operative mode (205F_0): 0 = operative -> true, 2 = in-operative -> false
+      if (v === 1) return { value: true };
+      if (v === 0 || v === 2) return { value: v === 0 };
+      return {};
     }
 
     // String capabilities
