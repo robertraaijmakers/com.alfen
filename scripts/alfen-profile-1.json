@@ -1,0 +1,1 @@
+{"connectorId":0,"csChargingProfiles":{"chargingProfileId":-19930828,"chargingProfileKind":"Relative","chargingProfilePurpose":"ChargingStationExternalConstraints","stackLevel":0,"useLocalTime":true,"useRandomisedDelay":false,"chargingSchedule":{"chargingRateUnit":"A","chargingSchedulePeriod":[{"startPeriod":0,"limit":11.7,"numberPhases":3}]}}}

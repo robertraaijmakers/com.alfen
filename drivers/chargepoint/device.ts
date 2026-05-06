@@ -11,8 +11,10 @@ module.exports = class MyDevice extends Homey.Device {
   apiUrl: string = 'api';
   alfenApi!: AlfenApi;
   socketIndex: 1 | 2 = 1;
+  activePhases: number = 3;
 
   currentInterval: NodeJS.Timeout | null = null;
+  #lastTargetPowerMax: number | null = null;
 
   /**
    * onInit is called when the device is initialized.
@@ -43,6 +45,12 @@ module.exports = class MyDevice extends Homey.Device {
     }, this.refreshRate * 1000);
 
     await this.refreshDevice();
+
+    // Get the current measure_current.limit value to set the correct target_power options on startup, from local property
+    const measureCurrentLimit = this.getCapabilityValue('measure_current.limit') as number;
+    if (measureCurrentLimit != null) {
+      await this.#updateTargetPowerOptions(measureCurrentLimit);
+    }
   }
 
   async #removeSolarCapabilitiesForDuo(): Promise<void> {
@@ -166,6 +174,30 @@ module.exports = class MyDevice extends Homey.Device {
   }
 
   /** Helper Functions */
+  async #updateTargetPowerOptions(measureCurrentLimit: number): Promise<void> {
+    try {
+      // Calculate max power in Watts: currentLimit (A) * phases * voltage (V)
+      const maxPowerWatts = Math.round(measureCurrentLimit * this.activePhases * 230);
+
+      // Only update if the max value has changed
+      if (this.#lastTargetPowerMax !== maxPowerWatts) {
+        this.log(`Updating target_power options: max=${maxPowerWatts}W (${measureCurrentLimit}A × ${this.activePhases} phases × 230V)`);
+
+        this.setCapabilityOptions('target_power', {
+          excludeMin: 0,
+          excludeMax: 1380,
+          min: 0,
+          max: maxPowerWatts,
+          step: 230,
+        });
+
+        this.#lastTargetPowerMax = maxPowerWatts;
+      }
+    } catch (error) {
+      this.error('Error updating target_power options:', error);
+    }
+  }
+
   async updateCapabilities(
     capabilitiesData: Array<{
       capabilityId: string;
@@ -184,6 +216,11 @@ module.exports = class MyDevice extends Homey.Device {
         await this.setCapabilityValue(capabilityId, value ?? '')
           .catch((error) => this.error(`Error updating capability ${capabilityId} with value ${value}: `, error))
           .then(() => this.log(`Update capability: ${capabilityId} with value ${value}`));
+
+        // Update target_power options when measure_current.limit changes
+        if (capabilityId === 'measure_current.limit') {
+          await this.#updateTargetPowerOptions(Number(value));
+        }
 
         // Trigger flow card for comfort charge level changes
         if (capabilityId === 'comfortchargelevel') {
@@ -229,6 +266,10 @@ module.exports = class MyDevice extends Homey.Device {
 
     this.registerCapabilityListener('measure_current.limit', async (value) => {
       await this.#setCurrentLimit(Number(value));
+    });
+
+    this.registerCapabilityListener('target_power', async (value) => {
+      await this.#setStationLimit(Number(value));
     });
 
     this.registerCapabilityListener('evcharger_charging', async (value) => {
@@ -279,8 +320,8 @@ module.exports = class MyDevice extends Homey.Device {
     });
 
     this.homey.flow.getActionCard('measure_current.limit').registerRunListener(async (args, state) => {
-      this.log('Flow card action', args, state);
-      await this.#setCurrentLimit(args.limit);
+      this.log('Flow card action: measure_current.limit', args, state);
+      await this.#setCurrentLimit(Number(args.limit));
     });
 
     this.homey.flow.getActionCard('reboot_wallbox').registerRunListener(async (args, state) => {
@@ -415,6 +456,22 @@ module.exports = class MyDevice extends Homey.Device {
       await this.alfenApi.apiRebootEvCharger();
     } catch (error) {
       this.log('Error rebooting wallbox:', error);
+      throw new Error(`${error}`);
+    } finally {
+      await this.alfenApi.apiLogout();
+    }
+
+    return true;
+  }
+
+  async #setStationLimit(value: number) {
+    this.log('setStationLimit', value);
+
+    try {
+      await this.alfenApi.apiLogin();
+      await this.alfenApi.apiSetChargingLimit(value, 3);
+    } catch (error) {
+      this.log('Error setting station limit:', error);
       throw new Error(`${error}`);
     } finally {
       await this.alfenApi.apiLogout();

@@ -8,6 +8,7 @@
     "operatingmode",
     "measure_current",
     "measure_power",
+    "target_power",
     "evcharger_charging",
     "evcharger_charging_state",
     "meter_power",
@@ -66,7 +67,7 @@
         "nl": "Stroomsterkte Limiet"
       },
       "min": 1,
-      "max": 16,
+      "max": 32,
       "step": 1,
       "setable": true
     },
@@ -111,6 +112,22 @@
         "en": "Power L3",
         "nl": "Power L3"
       }
+    },
+    "measure_power.limit": {
+      "title": {
+        "en": "Power Limit",
+        "nl": "Power Limiet"
+      }
+    },
+    "target_power": {
+      "title": {
+        "en": "Power Limit Station",
+        "nl": "Power Limiet Station"
+      },
+      "min": 0,
+      "max": 22080,
+      "step": 230,
+      "setable": true
     },
     "chargeid": {
       "title": {

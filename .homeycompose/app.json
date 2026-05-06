@@ -1,7 +1,7 @@
 {
   "id": "com.alfen",
-  "version": "2.0.2",
-  "compatibility": ">=12.4.5",
+  "version": "2.1.0",
+  "compatibility": ">=12.13.0",
   "sdk": 3,
   "platforms": [
     "local"

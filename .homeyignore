@@ -1,0 +1,16 @@
+node_modules/
+.homeybuild/
+.git/
+.vscode/
+.DS_Store
+*.log
+
+# Large analysis/decompilation artifacts
+EveConnect/
+env.json
+.alfen-debug.json
+
+# Build artifacts & temporary files
+*.map
+*.tsbuildinfo
+.eslintcache

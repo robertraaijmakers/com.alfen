@@ -2,7 +2,7 @@
 
 'use strict';
 
-import { IncomingHttpHeaders } from 'undici/types/header';
+import { IncomingHttpHeaders } from 'http';
 
 export interface PairData {
   ip: string;

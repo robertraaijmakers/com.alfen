@@ -27,5 +27,9 @@
   "2.0.2": {
     "en": "Added some extra capabilities (reboot & start/pause).",
     "nl": "Eerste versie voor nieuwe opties zoals Reboot & start/pause functionaliteit toegevoegd."
+  },
+  "2.1.0": {
+    "en": "Added ability to properly set the target power of the charging station!",
+    "nl": "Toegevoegd mogelijkheid om het doelvermogen van het laadstation correct in te stellen!"
   }
 }

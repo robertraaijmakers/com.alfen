@@ -2,8 +2,7 @@
 
 'use strict';
 
-import { IncomingHttpHeaders } from 'undici/types/header';
-import { Pool } from 'undici';
+import * as https from 'https';
 
 import { HttpsPromiseOptions, HttpsPromiseResponse, PropertyResponseBody } from '../localTypes/types';
 import { InfoResponse } from './models/InfoResponse';
@@ -12,11 +11,10 @@ import { ChargerDetails } from './models/ChargerDetails';
 import { SocketIndex, alfenProps, buildIds, forSocket, getActualValuePropIds, getCapabilityMap, normalizeApiId, propIdToApiId } from './alfenProps';
 import { Cap, type CapabilityId } from './homeyCapabilities';
 
-const apiHeader: string = 'alfen/json; charset=utf-8';
 const apiUrl: string = 'api';
 
 export class AlfenApi {
-  #agent: Pool | null = null;
+  #agent: https.Agent | null = null;
   #retrieving: number = 0;
 
   #ip: string;
@@ -48,44 +46,26 @@ export class AlfenApi {
 
     this.#log(`Creating new agent and start login: ${this.#retrieving}`);
 
-    this.#agent = new Pool(`https://${this.#ip}`, {
-      connections: 1,
-      pipelining: 1,
-      keepAliveTimeout: 2000,
-      keepAliveMaxTimeout: 5000,
-      connect: { rejectUnauthorized: false },
+    this.#agent = new https.Agent({
+      keepAlive: true,
+      maxSockets: 1,
+      rejectUnauthorized: false,
     });
 
-    if (this.#agent === null) {
-      this.#log(`Creating new agent failed.`);
-    }
-
-    // Define the request body
     const body = JSON.stringify({
       username: this.#username,
       password: this.#password,
     });
 
-    // Define the options for the HTTPS request
-    const options = {
-      path: `/${apiUrl}/login`,
-      method: 'POST',
-      headers: {},
-      keepAlive: true,
-    } as HttpsPromiseOptions;
-
     this.#log(`Set body & options`);
 
     try {
-      // Make the HTTPS request using the httpsPromise method
-      const response = await this.#httpsPromise({ ...options, body });
-
-      // Handle the response
+      const response = await this.#httpsRequestKeepAlive(this.#agent, `/${apiUrl}/login`, 'POST', body);
       this.#log('Login successful:', response);
     } catch (error) {
+      this.#agent.destroy();
       this.#agent = null;
       this.#retrieving = 0;
-
       this.#log('Login failed:', error);
       throw new Error(`Login failed: ${error}`);
     }
@@ -108,29 +88,15 @@ export class AlfenApi {
 
     this.#log(`Logout procedure, logout & clean-up agent.`);
 
-    // Define the options for the HTTPS request
-    const options = {
-      path: `/${apiUrl}/logout`,
-      method: 'POST',
-      headers: {} as IncomingHttpHeaders,
-      keepAlive: false,
-    } as HttpsPromiseOptions;
-
     try {
-      // Make the HTTPS request using the httpsPromise method
-      const response = await this.#httpsPromise(options);
-      this.#log('Logout successful: ', response);
-
-      this.#agent?.destroy();
-      this.#agent = null;
-
-      // Handle the response
-      this.#log('Agent destroyed');
+      const response = await this.#httpsRequestKeepAlive(this.#agent, `/${apiUrl}/logout`, 'POST');
+      this.#log('Logout successful:', response);
     } catch (error) {
       this.#log('Logout failed:', error);
-      this.#agent?.destroy();
     } finally {
+      this.#agent.destroy();
       this.#agent = null;
+      this.#log('Agent destroyed');
     }
   }
 
@@ -179,6 +145,9 @@ export class AlfenApi {
       // Make the HTTPS request using the httpsPromise method
       const response = await this.#httpsPromise(options);
       bodyResult = <PropertyResponseBody>response.body;
+
+      const additionalData = await this.#apiGetChargingLimit();
+      capabilitiesData.push(...additionalData);
     } catch (error) {
       this.#log('Request failed:', error);
       throw new Error(`Request failed: ${error}`);
@@ -252,6 +221,60 @@ export class AlfenApi {
     return capabilitiesData;
   }
 
+  async #apiGetChargingLimit(): Promise<Array<{ capabilityId: string; value: number | string | boolean }>> {
+    const options: HttpsPromiseOptions = {
+      path: `/${apiUrl}/chargingprofiles?cpid=-19930828`,
+      method: 'GET',
+      headers: {},
+      keepAlive: true,
+    };
+
+    const capabilitiesData: Array<{
+      capabilityId: string;
+      value: number | string | boolean;
+    }> = [];
+
+    try {
+      const response = await this.#httpsPromise(options);
+
+      type ChargingProfileResponse = {
+        profile?: {
+          csChargingProfiles?: {
+            limit?: number[];
+            numberPhases?: number[];
+          };
+        };
+      };
+
+      const body = response.body as ChargingProfileResponse;
+      const ampsPerPhase = Number(body?.profile?.csChargingProfiles?.limit?.[0]);
+      const phasesRaw = Number(body?.profile?.csChargingProfiles?.numberPhases?.[0]);
+      const phases = Number.isFinite(phasesRaw) && phasesRaw > 0 ? phasesRaw : 3;
+
+      if (!Number.isFinite(ampsPerPhase)) {
+        throw new Error('apiGetChargingLimit: profile response did not contain a numeric limit[0].');
+      }
+
+      // Convert A per phase back to total power in Watts for target_power.
+      const limitWatts = ampsPerPhase * phases * 230;
+      capabilitiesData.push({
+        capabilityId: 'target_power',
+        value: limitWatts,
+      });
+
+      this.#log('Charging limit profile read:', {
+        ampsPerPhase,
+        phases,
+        limitWatts,
+      });
+
+      return capabilitiesData;
+    } catch (error) {
+      this.#log('Request failed:', error);
+      throw new Error(`Request failed: ${error}`);
+    }
+  }
+
   async apiSetCurrentLimit(currentLimit: number, socketIndex: SocketIndex = 1) {
     if (currentLimit < 1 || currentLimit > 32) return false;
 
@@ -270,6 +293,56 @@ export class AlfenApi {
       await this.#apiSetProperty(body);
     } catch (e) {
       throw new Error(`Error setting current limit (socket ${socketIndex}): ${e}`);
+    }
+
+    return true;
+  }
+
+  async apiSetChargingLimit(limitWatts: number, activePhases: number = 3) {
+    this.#log(`Executing apiSetChargingLimit: ${limitWatts} W, activePhases: ${activePhases}`);
+
+    if (!Number.isFinite(limitWatts) || limitWatts <= 0) return false;
+    if (!Number.isInteger(activePhases) || activePhases < 1 || activePhases > 3) return false;
+
+    this.#log(`Setting charging limit: ${limitWatts} W, activePhases: ${activePhases}`);
+
+    // The target_power capability uses Watts. Convert W -> A and divide over active phases.
+    const totalAmps = Math.round((limitWatts / 230) * 10) / 10;
+    const ampsPerPhase = Math.round((totalAmps / activePhases) * 10) / 10;
+
+    const body = JSON.stringify({
+      connectorId: 0,
+      csChargingProfiles: {
+        chargingProfileId: -19930828,
+        chargingProfileKind: 'Relative',
+        chargingProfilePurpose: 'ChargingStationExternalConstraints',
+        stackLevel: 0,
+        useLocalTime: true,
+        useRandomisedDelay: false,
+        chargingSchedule: {
+          chargingRateUnit: 'A',
+          chargingSchedulePeriod: [
+            {
+              startPeriod: 0,
+              limit: ampsPerPhase,
+              numberPhases: activePhases,
+            },
+          ],
+        },
+      },
+    });
+
+    this.#log(`Constructed charging limit profile body: ${body}`);
+
+    if (!this.#agent) {
+      throw new Error('No active session: apiLogin() required before making requests.');
+    }
+
+    try {
+      const response = await this.#httpsRequestKeepAlive(this.#agent, `/${apiUrl}/chargingprofiles?add`, 'POST', body);
+      this.#log('Charging profile updated:', { limitWatts, activePhases, ampsPerPhase, response: response.body });
+    } catch (error) {
+      throw new Error(`Error setting charging limit profile: ${error}`);
     }
 
     return true;
@@ -436,44 +509,78 @@ export class AlfenApi {
   }
 
   async #httpsPromise(options: HttpsPromiseOptions): Promise<HttpsPromiseResponse> {
-    const { body, ...requestOptions } = options;
-
-    if (body && body.length > 0) {
-      requestOptions.headers = { 'Content-Length': Buffer.byteLength(body).toString(), ...requestOptions.headers };
-    }
-
-    if (requestOptions.path.indexOf('logout') <= 0) {
-      requestOptions.headers = { Connection: 'keep-alive', ...requestOptions.headers };
-    }
-
     if (!this.#agent) {
       throw new Error('No active session: apiLogin() required before making requests.');
     }
 
-    const res = await this.#agent.request({
-      path: requestOptions.path,
-      method: requestOptions.method,
-      headers: {
-        'User-Agent': 'undici',
-        'Content-Type': apiHeader,
-        ...requestOptions.headers,
-      },
-      body: body,
+    const result = await this.#httpsRequestKeepAlive(this.#agent, options.path, options.method, options.body as string | undefined);
+
+    return { body: result.body, headers: result.headers };
+  }
+
+  async #httpsRequestKeepAlive(agent: https.Agent, path: string, method: 'POST' | 'GET', body?: string): Promise<HttpsPromiseResponse & { statusCode: number }> {
+    const headers: Record<string, string> = {
+      Connection: 'Keep-Alive',
+      'Content-Type': 'application/json',
+      'User-Agent': '',
+      Accept: 'application/json',
+      'Accept-Encoding': '',
+    };
+
+    if (body !== undefined) {
+      headers['Content-Length'] = Buffer.byteLength(body).toString();
+    }
+
+    const raw = await new Promise<{ statusCode: number; body: string }>((resolve, reject) => {
+      const req = https.request(
+        {
+          hostname: this.#ip,
+          path,
+          method,
+          headers,
+          agent,
+          rejectUnauthorized: false,
+          timeout: 15000,
+        },
+        (res: import('http').IncomingMessage) => {
+          let data = '';
+          res.on('data', (chunk: Buffer) => {
+            data += chunk;
+          });
+          res.on('end', () => {
+            resolve({ statusCode: Number(res.statusCode || 0), body: data });
+          });
+        },
+      );
+
+      req.on('error', reject);
+      req.on('timeout', () => {
+        req.destroy(new Error(`Request timed out: ${method} ${path}`));
+      });
+
+      if (body !== undefined) {
+        req.write(body);
+      }
+
+      req.end();
     });
 
-    if (!res.statusCode || res.statusCode !== 200) {
-      throw new Error(`Request failed with status: ${res.statusCode}`);
+    if (raw.statusCode !== 200) {
+      throw new Error(`Request failed with status ${raw.statusCode}: ${raw.body}`);
     }
 
-    const rawBody = await res.body.text(); // Read body once as text
-    let parsedBody;
+    let parsedBody: string | object;
     try {
-      parsedBody = JSON.parse(rawBody); // Try parsing as JSON
+      parsedBody = JSON.parse(raw.body) as object;
     } catch {
-      parsedBody = rawBody; // Fallback to text if JSON parsing fails
+      parsedBody = raw.body;
     }
 
-    return { body: parsedBody, headers: res.headers } as HttpsPromiseResponse;
+    return {
+      statusCode: raw.statusCode,
+      body: parsedBody,
+      headers: {},
+    };
   }
 
   #normalizeCapabilityValue(

@@ -267,9 +267,9 @@
                         "en": "Current limit",
                         "nl": "Laadsnelheid"
                     },
-                    "min": 1,
-                    "max": 32,
-                    "step": 1,
+                    "min": 1.0,
+                    "max": 32.0,
+                    "step": 1.0,
                     "label": "A"
                 }
             ]
