@@ -53,10 +53,6 @@ function unique<T>(items: ReadonlyArray<T>): T[] {
   return Array.from(new Set(items));
 }
 
-function asApiId(p: PropId): string {
-  return typeof p === 'number' ? propIdToApiId(p) : p;
-}
-
 /**
  * Canonical prop ids (numeric) derived from your C# enums.
  * We also keep a small set of legacy string ids for firmwares that still expose those.

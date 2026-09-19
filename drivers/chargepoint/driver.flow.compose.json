@@ -250,31 +250,6 @@
             }
         },
         {
-            "id": "measure_current.limit",
-            "title": {
-                "en": "Set current limit",
-                "nl": "Beperk laadsnelheid"
-            },
-            "titleFormatted": {
-                "en": "Set current limit to [[limit]]",
-                "nl": "Beperk laadsnelheid tot [[limit]]"
-            },
-            "args": [
-                {
-                    "type": "range",
-                    "name": "limit",
-                    "title": {
-                        "en": "Current limit",
-                        "nl": "Laadsnelheid"
-                    },
-                    "min": 1.0,
-                    "max": 32.0,
-                    "step": 1.0,
-                    "label": "A"
-                }
-            ]
-        },
-        {
             "id": "reboot_wallbox",
             "title": {
                 "en": "Reboot wallbox",

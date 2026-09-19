@@ -221,6 +221,114 @@ export class AlfenApi {
     return capabilitiesData;
   }
 
+  /**
+   * Get the RFID/Plug&Charge tag of the currently active (started, not yet stopped) session
+   * for a single socket, by scanning /api/transactions (same endpoint & line format used by
+   * https://github.com/leeyuentuen/alfen_wallbox, see txstart/txstop parsing).
+   *
+   * Resumes from `offset` so repeated calls only need to scan newly appended lines.
+   */
+  async apiGetActiveChargeTag(socketIndex: SocketIndex, offset: number = 0): Promise<{ tag: string | null; offset: number }> {
+    const maxOffset = 500000;
+    const targetSocket = `Socket ${socketIndex}`;
+
+    let cursor = Number.isFinite(offset) && offset >= 0 ? Math.min(offset, maxOffset) : 0;
+    let sessionTag: string | null = null;
+    let sessionActive = false;
+    let counter = 0;
+    let unknownLine = 0;
+    let loop = true;
+
+    try {
+      while (loop) {
+        cursor = Math.min(Math.max(cursor, 0), maxOffset);
+
+        const options: HttpsPromiseOptions = {
+          path: `/${apiUrl}/transactions?offset=${cursor}`,
+          method: 'GET',
+          headers: {},
+          keepAlive: true,
+        };
+
+        const response = await this.#httpsPromise(options);
+        const text = typeof response.body === 'string' ? response.body : '';
+        const lines = text.split('\n');
+
+        if (!text || lines.length === 0) break;
+
+        for (const rawLine of lines) {
+          let line = rawLine;
+          if (!line) {
+            loop = false;
+            break;
+          }
+
+          let tidStr = '';
+          try {
+            if (line.includes('version')) {
+              line = line.split(':2,')[1] ?? line;
+            }
+            const parts = line.split(' ');
+
+            if (line.includes('txstart')) {
+              tidStr = parts[0].split('_')[0];
+              const socket = `${parts[3]} ${parts[4]?.split(',')[0] ?? ''}`;
+              if (socket === targetSocket) {
+                sessionTag = parts[8] ?? null;
+                sessionActive = true;
+              }
+            } else if (line.includes('txstop')) {
+              tidStr = parts[0].split('_')[0];
+              const socket = `${parts[3]} ${parts[4]?.split(',')[0] ?? ''}`;
+              if (socket === targetSocket) {
+                sessionActive = false;
+              }
+            } else if (line.includes('mv')) {
+              tidStr = parts[0].split('_')[0];
+            } else if (line.includes('dto')) {
+              const tid = parseInt(parts[0].split('_')[0], 10);
+              cursor = Math.min(Number.isFinite(tid) && tid > cursor ? tid : cursor + 1, maxOffset);
+              continue;
+            } else if (line.includes('0_Empty')) {
+              loop = false;
+              break;
+            } else {
+              cursor += 1;
+              unknownLine += 1;
+              if (unknownLine > 2) loop = false;
+              continue;
+            }
+          } catch {
+            loop = false;
+            break;
+          }
+
+          const parsedOffset = parseInt(tidStr, 10);
+          if (Number.isNaN(parsedOffset)) continue;
+
+          if (cursor === parsedOffset) {
+            counter += 1;
+          } else {
+            cursor = parsedOffset;
+            counter = 0;
+          }
+
+          if (counter === 2) {
+            loop = false;
+            break;
+          }
+
+          if (line === lines[lines.length - 1]) break;
+        }
+      }
+    } catch (error) {
+      // Not all firmwares/configurations expose transaction history; treat as non-fatal.
+      this.#log('apiGetActiveChargeTag failed (ignored):', error);
+    }
+
+    return { tag: sessionActive ? sessionTag : null, offset: cursor };
+  }
+
   async #apiGetChargingLimit(): Promise<Array<{ capabilityId: string; value: number | string | boolean }>> {
     const options: HttpsPromiseOptions = {
       path: `/${apiUrl}/chargingprofiles?cpid=-19930828`,

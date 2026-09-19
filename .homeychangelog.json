@@ -35,5 +35,9 @@
   "2.1.1": {
     "en": "Reverted some changes, to get metrics back again",
     "nl": "Sommige wijzigingen teruggedraaid, dit zou de laadpaal in ieder geval weer beter status moeten laten rapporteren"
+  },
+  "2.1.2": {
+    "en": "Minor fixes and improvements. Removed some capabilities that were causing issues.",
+    "nl": "Kleine fixes en verbeteringen. Sommige functionaliteiten die problemen veroorzaakten, zijn verwijderd."
   }
 }

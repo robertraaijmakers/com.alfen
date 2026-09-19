@@ -30,7 +30,8 @@
     "comfortchargelevel",
     "chargetype",
     "authmode",
-    "chargeid"
+    "chargeid",
+    "active_charge_id"
   ],
   "energy": {
     "evCharger": true,
@@ -69,7 +70,7 @@
       "min": 1,
       "max": 32,
       "step": 1,
-      "setable": true
+      "setable": false
     },
     "measure_current.stationlimit": {
       "title": {
@@ -131,8 +132,14 @@
     },
     "chargeid": {
       "title": {
-        "en": "Charge ID",
-        "nl": "Laad ID"
+        "en": "Configured Charge ID",
+        "nl": "Ingestelde Laadpas"
+      }
+    },
+    "active_charge_id": {
+      "title": {
+        "en": "Active Charge ID",
+        "nl": "Actieve Laadpas"
       }
     }
   },

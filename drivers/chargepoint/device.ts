@@ -14,6 +14,9 @@ module.exports = class MyDevice extends Homey.Device {
 
   currentInterval: NodeJS.Timeout | null = null;
   #lastTargetPowerMax: number | null = null;
+  #transactionOffset: number = 0;
+  #lastChargingState: string | null = null;
+  #activeChargeIdInitialized: boolean = false;
 
   /**
    * onInit is called when the device is initialized.
@@ -79,6 +82,9 @@ module.exports = class MyDevice extends Homey.Device {
       await this.alfenApi.apiLogin();
       try {
         result = await this.alfenApi.apiGetActualValues(this.socketIndex);
+        if (result && this.#shouldRefreshActiveChargeId(result)) {
+          await this.#refreshActiveChargeId(result);
+        }
       } finally {
         // Only logout when login actually succeeded.
         await this.alfenApi.apiLogout();
@@ -91,6 +97,31 @@ module.exports = class MyDevice extends Homey.Device {
 
     // Parse result values
     await this.updateCapabilities(result);
+  }
+
+  /**
+   * Active Charge ID only needs a refresh when the socket's charging state changed
+   * (e.g. a new session started/stopped) or on the very first poll after init.
+   */
+  #shouldRefreshActiveChargeId(result: Array<{ capabilityId: string; value: string | number | boolean }>): boolean {
+    if (!this.#activeChargeIdInitialized) return true;
+
+    const newState = result.find((r) => r.capabilityId === 'evcharger_charging_state')?.value;
+    return typeof newState === 'string' && newState !== this.#lastChargingState;
+  }
+
+  async #refreshActiveChargeId(result: { capabilityId: string; value: string | number | boolean }[]): Promise<void> {
+    const newState = result.find((r) => r.capabilityId === 'evcharger_charging_state')?.value;
+    if (typeof newState === 'string') this.#lastChargingState = newState;
+    this.#activeChargeIdInitialized = true;
+
+    try {
+      const { tag, offset } = await this.alfenApi.apiGetActiveChargeTag(this.socketIndex, this.#transactionOffset);
+      this.#transactionOffset = offset;
+      result.push({ capabilityId: 'active_charge_id', value: tag ?? '' });
+    } catch (error) {
+      this.error('Error refreshing active charge ID:', error);
+    }
   }
 
   /**
@@ -278,49 +309,63 @@ module.exports = class MyDevice extends Homey.Device {
   }
 
   async #registerFlowCardListeners() {
+    // NOTE: homey.flow.getActionCard(id) returns one shared card per app, so
+    // registerRunListener() here REPLACES any listener registered by another
+    // device instance (last device to init "wins"). We must therefore always
+    // act on `args.device` (the device the flow action is actually targeting),
+    // never on `this`, otherwise actions from all chargers hit a single device.
     this.homey.flow.getActionCard('comfortchargelevel').registerRunListener(async (args, state) => {
-      this.log('Flow card action', args, state);
-      await this.#setComfortChargeLevel(args.comfortchargelevel);
+      const device = args.device as MyDevice;
+      device.log('Flow card action', args, state);
+      await device.#setComfortChargeLevel(args.comfortchargelevel);
     });
 
     this.homey.flow.getActionCard('greenshare').registerRunListener(async (args, state) => {
-      this.log('Flow card action', args, state);
-      await this.#setGreenSharePercentage(args.greenshare);
+      const device = args.device as MyDevice;
+      device.log('Flow card action', args, state);
+      await device.#setGreenSharePercentage(args.greenshare);
     });
 
     this.homey.flow.getActionCard('chargetype').registerRunListener(async (args, state) => {
-      this.log('Flow card action', args, state);
-      await this.#setChargeType(args.chargetype);
+      const device = args.device as MyDevice;
+      device.log('Flow card action', args, state);
+      await device.#setChargeType(args.chargetype);
     });
 
     this.homey.flow.getActionCard('authmode').registerRunListener(async (args, state) => {
-      this.log('Flow card action', args, state);
-      await this.#setAuthMode(args.authmode);
+      const device = args.device as MyDevice;
+      device.log('Flow card action', args, state);
+      await device.#setAuthMode(args.authmode);
     });
 
     this.homey.flow.getActionCard('chargeid').registerRunListener(async (args, state) => {
-      this.log('Flow card action', args, state);
-      await this.#setChargeID(args.chargeid);
+      const device = args.device as MyDevice;
+      device.log('Flow card action', args, state);
+      await device.#setChargeID(args.chargeid);
     });
 
     this.homey.flow.getActionCard('enable_plug_and_charge').registerRunListener(async (args, state) => {
-      this.log('Flow card action: enable_plug_and_charge', args, state);
-      await this.#enablePlugAndCharge(args.chargeid);
+      const device = args.device as MyDevice;
+      device.log('Flow card action: enable_plug_and_charge', args, state);
+      await device.#enablePlugAndCharge(args.chargeid);
     });
 
     this.homey.flow.getActionCard('enable_rfid').registerRunListener(async (args, state) => {
-      this.log('Flow card action: enable_rfid', args, state);
-      await this.#enableRFID();
+      const device = args.device as MyDevice;
+      device.log('Flow card action: enable_rfid', args, state);
+      await device.#enableRFID();
     });
 
     this.homey.flow.getActionCard('measure_current.limit').registerRunListener(async (args, state) => {
-      this.log('Flow card action: measure_current.limit', args, state);
-      await this.#setCurrentLimit(Number(args.limit));
+      const device = args.device as MyDevice;
+      device.log('Flow card action: measure_current.limit', args, state);
+      await device.#setCurrentLimit(Number(args.limit));
     });
 
     this.homey.flow.getActionCard('reboot_wallbox').registerRunListener(async (args, state) => {
-      this.log('Flow card action: reboot_wallbox', args, state);
-      await this.#rebootWallbox();
+      const device = args.device as MyDevice;
+      device.log('Flow card action: reboot_wallbox', args, state);
+      await device.#rebootWallbox();
     });
   }
 

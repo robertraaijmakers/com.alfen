@@ -23,6 +23,7 @@ export const Cap = {
 
   AuthMode: 'authmode',
   ChargeID: 'chargeid',
+  ActiveChargeId: 'active_charge_id',
   ChargeType: 'chargetype',
   GreenShare: 'greenshare',
   ComfortChargeLevel: 'comfortchargelevel',

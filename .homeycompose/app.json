@@ -1,6 +1,6 @@
 {
   "id": "com.alfen",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "compatibility": ">=12.13.0",
   "sdk": 3,
   "platforms": [

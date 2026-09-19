@@ -451,7 +451,8 @@
         "comfortchargelevel",
         "chargetype",
         "authmode",
-        "chargeid"
+        "chargeid",
+        "active_charge_id"
       ],
       "energy": {
         "evCharger": true,
@@ -639,6 +640,18 @@
     }
   ],
   "capabilities": {
+    "active_charge_id": {
+      "type": "string",
+      "title": {
+        "en": "Active Charge ID",
+        "nl": "Actief Laad ID"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "uiQuickAction": false,
+      "icon": "/assets/chargeid.svg"
+    },
     "authmode": {
       "type": "enum",
       "title": {

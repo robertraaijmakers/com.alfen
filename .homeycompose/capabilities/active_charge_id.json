@@ -1,0 +1,12 @@
+{
+    "type": "string",
+    "title": {
+        "en": "Active Charge ID",
+        "nl": "Actief Laad ID"
+    },
+    "getable": true,
+    "setable": false,
+    "uiComponent": "sensor",
+    "uiQuickAction": false,
+    "icon": "/assets/chargeid.svg"
+  }
