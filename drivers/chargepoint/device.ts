@@ -17,6 +17,8 @@ module.exports = class MyDevice extends Homey.Device {
   #transactionOffset: number = 0;
   #lastChargingState: string | null = null;
   #activeChargeIdInitialized: boolean = false;
+  #activeChargeIdCaughtUp: boolean = false;
+  #refreshing: boolean = false;
 
   /**
    * onInit is called when the device is initialized.
@@ -35,6 +37,10 @@ module.exports = class MyDevice extends Homey.Device {
     }
 
     this.alfenApi = new AlfenApi(this.log, settings.ip, settings.username, settings.password);
+
+    // Resume the transaction scan near where we left off, otherwise every app
+    // restart re-scans the charger's entire transaction history from offset 0.
+    this.#transactionOffset = Number(await this.getStoreValue('transactionOffset')) || 0;
 
     this.log(`Using socketIndex: ${this.socketIndex}`);
 
@@ -75,36 +81,49 @@ module.exports = class MyDevice extends Homey.Device {
   }
 
   async refreshDevice() {
+    // The interval timer doesn't await the previous run, so a slow transaction
+    // scan (see #refreshActiveChargeId) could otherwise overlap with the next tick.
+    if (this.#refreshing) {
+      this.log('Refresh already in progress, skipping this tick.');
+      return;
+    }
+    this.#refreshing = true;
+
     this.log('Refresh Device');
     let result: { capabilityId: string; value: string | number | boolean }[] | null = null;
 
     try {
-      await this.alfenApi.apiLogin();
       try {
-        result = await this.alfenApi.apiGetActualValues(this.socketIndex);
-        if (result && this.#shouldRefreshActiveChargeId(result)) {
-          await this.#refreshActiveChargeId(result);
+        await this.alfenApi.apiLogin();
+        try {
+          result = await this.alfenApi.apiGetActualValues(this.socketIndex);
+          if (result && this.#shouldRefreshActiveChargeId(result)) {
+            await this.#refreshActiveChargeId(result);
+          }
+        } finally {
+          // Only logout when login actually succeeded.
+          await this.alfenApi.apiLogout();
         }
-      } finally {
-        // Only logout when login actually succeeded.
-        await this.alfenApi.apiLogout();
+      } catch (error) {
+        this.log('Error refreshing device:', error);
       }
-    } catch (error) {
-      this.log('Error refreshing device:', error);
+
+      if (result == null) return;
+
+      // Parse result values
+      await this.updateCapabilities(result);
+    } finally {
+      this.#refreshing = false;
     }
-
-    if (result == null) return;
-
-    // Parse result values
-    await this.updateCapabilities(result);
   }
 
   /**
-   * Active Charge ID only needs a refresh when the socket's charging state changed
-   * (e.g. a new session started/stopped) or on the very first poll after init.
+   * Active Charge ID needs a refresh when the socket's charging state changed (e.g. a new
+   * session started/stopped), on the very first poll after init, or when a previous scan
+   * was cut short by its time budget and hasn't yet caught up to the live end of the log.
    */
   #shouldRefreshActiveChargeId(result: Array<{ capabilityId: string; value: string | number | boolean }>): boolean {
-    if (!this.#activeChargeIdInitialized) return true;
+    if (!this.#activeChargeIdInitialized || !this.#activeChargeIdCaughtUp) return true;
 
     const newState = result.find((r) => r.capabilityId === 'evcharger_charging_state')?.value;
     return typeof newState === 'string' && newState !== this.#lastChargingState;
@@ -116,9 +135,12 @@ module.exports = class MyDevice extends Homey.Device {
     this.#activeChargeIdInitialized = true;
 
     try {
-      const { tag, offset } = await this.alfenApi.apiGetActiveChargeTag(this.socketIndex, this.#transactionOffset);
+      const { tag, offset, caughtUp } = await this.alfenApi.apiGetActiveChargeTag(this.socketIndex, this.#transactionOffset);
       this.#transactionOffset = offset;
-      result.push({ capabilityId: 'active_charge_id', value: tag ?? '' });
+      this.#activeChargeIdCaughtUp = caughtUp;
+      await this.setStoreValue('transactionOffset', offset).catch((err) => this.error('Error persisting transactionOffset:', err));
+      // Only report a tag once we've actually caught up; a mid-scan cursor doesn't reflect the current session yet.
+      if (caughtUp) result.push({ capabilityId: 'active_charge_id', value: tag ?? '' });
     } catch (error) {
       this.error('Error refreshing active charge ID:', error);
     }
@@ -295,10 +317,6 @@ module.exports = class MyDevice extends Homey.Device {
       await this.#setChargeID(value);
     });
 
-    this.registerCapabilityListener('measure_current.limit', async (value) => {
-      await this.#setCurrentLimit(Number(value));
-    });
-
     this.registerCapabilityListener('target_power', async (value) => {
       await this.#setStationLimit(Number(value));
     });
@@ -354,12 +372,6 @@ module.exports = class MyDevice extends Homey.Device {
       const device = args.device as MyDevice;
       device.log('Flow card action: enable_rfid', args, state);
       await device.#enableRFID();
-    });
-
-    this.homey.flow.getActionCard('measure_current.limit').registerRunListener(async (args, state) => {
-      const device = args.device as MyDevice;
-      device.log('Flow card action: measure_current.limit', args, state);
-      await device.#setCurrentLimit(Number(args.limit));
     });
 
     this.homey.flow.getActionCard('reboot_wallbox').registerRunListener(async (args, state) => {
