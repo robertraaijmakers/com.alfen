@@ -21,6 +21,10 @@ export class AlfenApi {
   #username: string;
   #password: string;
 
+  #latestLogs: string[] = [];
+  #latestTag: Record<string, any> = {};
+  #logOffset: number = 0;
+
   #log: (...args: any[]) => void;
 
   constructor(logger: (...args: any[]) => void, ip: string, username: string, password: string) {
@@ -221,193 +225,110 @@ export class AlfenApi {
     return capabilitiesData;
   }
 
-  /**
-   * Get the RFID/Plug&Charge tag of the currently active (started, not yet stopped) session
-   * for a single socket, by scanning /api/transactions (same endpoint & line format used by
-   * https://github.com/leeyuentuen/alfen_wallbox, see txstart/txstop parsing).
-   *
-   * Resumes from `offset` so repeated calls only need to scan newly appended lines.
-   * Bounded by `maxDurationMs` so a cold start (offset 0, large history) can never block
-   * the polling loop for long: it just returns the furthest cursor reached so far, and the
-   * caller resumes from there on the next call.
-   */
-  async apiGetActiveChargeTag(socketIndex: SocketIndex, offset: number = 0, maxDurationMs: number = 8000): Promise<{ tag: string | null; offset: number; caughtUp: boolean }> {
-    this.#log('apiGetActiveChargeTag called with socketIndex:', socketIndex, 'offset:', offset);
-    // Just a sanity ceiling against garbage/negative values, not a real protocol limit -
-    // chargers with a long transaction history can legitimately exceed six-digit tids.
-    const maxOffset = Number.MAX_SAFE_INTEGER;
-    const targetSocket = `Socket ${socketIndex}`;
-    const deadline = Date.now() + maxDurationMs;
-    const startingCursor = Number.isFinite(offset) && offset >= 0 ? Math.min(offset, maxOffset) : 0;
+  async #apiGetLatestLog(offset: number = 0): Promise<{ socket: string; tag: string | null } | null> {
+    const SOCKET_PATTERN = /[Ss]ocket #(\d+)/;
+    const TAG_PATTERN = /tag:\s*(\S+)/;
 
-    let cursor = startingCursor;
-    let sessionTag: string | null = null;
-    let sessionActive = false;
-    let counter = 0;
-    let loop = true;
-    // TEMP diagnostics: counts per line type seen during this scan.
-    const seen = { txstart: 0, txstop: 0, mv: 0, dto: 0, unknown: 0 };
-    // Only the explicit 0_Empty marker (or an empty body) from the charger confirms
-    // we've reached the live end of the log; every other exit path is inconclusive.
-    let caughtUp = false;
-    // The charger can apparently return an old/stale replay of its earliest retained
-    // history when queried at an offset past its real writable range (instead of a
-    // clean empty response). If the very first page we read is clearly ancient, back
-    // the cursor off and retry a few times (bounded by the time budget) before giving up.
-    const STALE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
-    const MAX_STALE_BACKOFF_ATTEMPTS = 6;
-    let isFirstPage = true;
-    let staleStart = false;
-    let staleBackoffAttempts = 0;
-    let staleBackoffStep = 2000;
+    // Fetch up to 5 pages
+    for (let page = 0; page < 5; page++) {
+      const options: HttpsPromiseOptions = {
+        path: `/${apiUrl}/log?offset=${page}`,
+        method: 'GET',
+        headers: {},
+        keepAlive: true,
+      };
 
-    try {
-      while (loop) {
-        if (Date.now() >= deadline) {
-          this.#log('apiGetActiveChargeTag: time budget exceeded, deferring rest to next call. cursor:', cursor);
-          break;
-        }
-        const requestedCursor = Math.min(Math.max(cursor, 0), maxOffset);
-        cursor = requestedCursor;
+      const response = await this.#httpsPromise(options);
+      const text = typeof response.body === 'string' ? response.body : '';
 
-        const options: HttpsPromiseOptions = {
-          path: `/${apiUrl}/transactions?offset=${cursor}`,
-          method: 'GET',
-          headers: {},
-          keepAlive: true,
-        };
+      if (!text) continue;
 
-        const response = await this.#httpsPromise(options);
-        const text = typeof response.body === 'string' ? response.body : '';
-        const lines = text.split('\n');
+      const lines = text.split('\n');
 
-        this.#log('apiGetActiveChargeTag raw page:', { cursor, text });
+      // Store unique logs (same as Python's deque)
+      for (const line of lines) {
+        if (!line) continue;
 
-        // No more data available right now at this cursor - we've caught up to the
-        // charger's live position (a new line only appears once something changes).
-        if (!text || lines.length === 0) {
-          caughtUp = true;
-          break;
-        }
+        this.#log('Processing log line:', line);
 
-        // Tracks how far this whole page lets us advance. A page can mix a leading
-        // "dto" hint with much older entries further behind our current cursor (e.g.
-        // when the retained history restarts from an earlier point); advancing must
-        // be judged once per full page, not line-by-line against a moving cursor.
-        let pageAdvancedTo = requestedCursor;
-        let pageMaxDate: number | null = null;
-
-        for (const rawLine of lines) {
-          let line = rawLine;
-          if (!line) break;
-
-          let tidStr = '';
-          try {
-            if (line.includes('version')) {
-              line = line.split(':2,')[1] ?? line;
-            }
-            const parts = line.split(' ');
-            tidStr = parts[0].split('_')[0];
-
-            if (line.includes('txstart')) {
-              const socket = `${parts[3]} ${parts[4]?.split(',')[0] ?? ''}`;
-              seen.txstart += 1;
-              // Charger reports lowercase "socket N"; compare case-insensitively.
-              if (socket.toLowerCase() === targetSocket.toLowerCase()) {
-                sessionTag = parts[8] ?? null;
-                sessionActive = true;
-              }
-            } else if (line.includes('txstop')) {
-              const socket = `${parts[3]} ${parts[4]?.split(',')[0] ?? ''}`;
-              seen.txstop += 1;
-              if (socket.toLowerCase() === targetSocket.toLowerCase()) {
-                sessionActive = false;
-              }
-            } else if (line.includes('mv')) {
-              seen.mv += 1;
-            } else if (line.includes('dto')) {
-              seen.dto += 1;
-            } else if (line.includes('0_Empty')) {
-              loop = false;
-              caughtUp = true;
-              break;
-            } else {
-              // Empty/placeholder slots (e.g. "629965_}") can appear in long contiguous
-              // runs; still carry an id prefix we can advance past.
-              seen.unknown += 1;
-            }
-          } catch {
-            loop = false;
-            break;
+        // Store unique logs
+        if (!this.#latestLogs.includes(line)) {
+          this.#latestLogs.push(line);
+          if (this.#latestLogs.length > 500) {
+            this.#latestLogs.shift();
           }
-
-          const parsedOffset = parseInt(tidStr, 10);
-          if (!Number.isNaN(parsedOffset)) {
-            pageAdvancedTo = Math.max(pageAdvancedTo, parsedOffset + 1);
-
-            const dateMatch = line.match(/(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})/);
-            const ts = dateMatch ? new Date(`${dateMatch[1]}T${dateMatch[2]}`).getTime() : NaN;
-            if (Number.isFinite(ts)) {
-              pageMaxDate = pageMaxDate === null ? ts : Math.max(pageMaxDate, ts);
-            }
-          }
-
-          if (line === lines[lines.length - 1]) break;
-        }
-
-        if (isFirstPage) {
-          isFirstPage = false;
-          if (pageMaxDate !== null && Date.now() - pageMaxDate > STALE_THRESHOLD_MS) {
-            if (staleBackoffAttempts < MAX_STALE_BACKOFF_ATTEMPTS) {
-              staleBackoffAttempts += 1;
-              const backedOffCursor = Math.max(0, requestedCursor - staleBackoffStep);
-              this.#log('apiGetActiveChargeTag: stale content, backing off and retrying.', {
-                requestedCursor,
-                pageMaxDate: new Date(pageMaxDate).toISOString(),
-                backedOffCursor,
-                attempt: staleBackoffAttempts,
-              });
-              cursor = backedOffCursor;
-              staleBackoffStep *= 4;
-              isFirstPage = true;
-              continue;
-            }
-
-            this.#log('apiGetActiveChargeTag: resumed offset stayed stale after backoff retries, giving up for now.', {
-              requestedCursor,
-              pageMaxDate: new Date(pageMaxDate).toISOString(),
-            });
-            cursor = requestedCursor;
-            staleStart = true;
-            loop = false;
-            break;
-          }
-        }
-
-        if (pageAdvancedTo > requestedCursor) {
-          cursor = Math.min(pageAdvancedTo, maxOffset);
-          counter = 0;
-        } else {
-          // No forward progress across the whole page; not a confirmed end-of-log.
-          counter += 1;
-        }
-
-        if (counter >= 2) {
-          loop = false;
         }
       }
-    } catch (error) {
-      // Not all firmwares/configurations expose transaction history; treat as non-fatal.
-      this.#log('apiGetActiveChargeTag failed (ignored):', error);
     }
 
-    if (staleStart && !caughtUp) {
-      cursor = Math.round(cursor / 2);
-      offset = cursor;
+    // Parse newest-first
+    for (const logLine of [...this.#latestLogs].reverse()) {
+      const underscorePos = logLine.indexOf('_');
+      if (underscorePos === -1 || underscorePos >= 20) continue;
+
+      // Parse line_id
+      const lineIdStr = logLine.substring(0, underscorePos);
+      const lineId = Number(lineIdStr);
+
+      if (Number.isNaN(lineId)) {
+        this.#log(`Skipping log line with invalid ID format: ${logLine}`);
+        continue;
+      }
+
+      const parts = logLine.substring(underscorePos + 1).split(':');
+      if (parts.length < 7) continue;
+
+      const message = parts.slice(6).join(':');
+
+      const socketMatch = SOCKET_PATTERN.exec(message);
+      if (!socketMatch) continue;
+      const socket = socketMatch[1];
+      const isConnect = message.includes('EV_CONNECTED_AUTHORIZED') || message.includes('CHARGING_POWER_ON') || message.includes('CABLE_CONNECTED');
+      const isDisconnect = message.includes('CHARGING_POWER_OFF') || message.includes('CHARGING_TERMINATING');
+
+      this.#log('Detected connect/disconnect event for socket', socket, ':', isConnect ? 'connect' : 'disconnect');
+
+      if ((isConnect || isDisconnect) && message.includes('tag:')) {
+        const tagKey = `socket-${socket}-start-tag`;
+        const taglogKey = `socket-${socket}-start-taglog`;
+
+        // Initialize if needed
+        if (!(taglogKey in this.#latestTag)) {
+          this.#latestTag[taglogKey] = 0;
+        }
+        if (!(tagKey in this.#latestTag)) {
+          this.#latestTag[tagKey] = null;
+        }
+
+        // Only update if this is a newer log entry
+        if (lineId > this.#latestTag[taglogKey]) {
+          this.#latestTag[taglogKey] = lineId;
+
+          if (isConnect) {
+            const tagMatch = TAG_PATTERN.exec(message);
+            this.#latestTag[tagKey] = tagMatch ? tagMatch[1] : null;
+            return { socket, tag: null };
+          } else {
+            this.#latestTag[tagKey] = null;
+            return { socket, tag: null };
+          }
+        }
+      }
     }
 
-    this.#log('apiGetActiveChargeTag result:', { sessionTag, sessionActive, cursor, caughtUp, staleStart, seen });
-    return { tag: sessionActive ? sessionTag : null, offset, caughtUp };
+    return null;
+  }
+
+  async apiGetActiveChargeTag(socketIndex: SocketIndex, offset: number = 0, maxDurationMs: number = 8000): Promise<{ tag: string | null; offset: number; caughtUp: boolean }> {
+    this.#log('apiGetActiveChargeTag called with socketIndex:', socketIndex, 'offset:', offset);
+
+    const logResult = await this.#apiGetLatestLog(offset);
+    if (logResult !== null) {
+      return { tag: logResult.tag, offset: 0, caughtUp: true };
+    }
+
+    this.#log('apiGetActiveChargeTag: no new log entry, returning latest tag for socketIndex:', socketIndex, 'latest tag:', this.#latestTag[`socket-${socketIndex}-start-tag`]);
+    return { tag: this.#latestTag[`socket-${socketIndex}-start-tag`], offset: 0, caughtUp: true };
   }
 
   async #apiGetChargingLimit(): Promise<Array<{ capabilityId: string; value: number | string | boolean }>> {
