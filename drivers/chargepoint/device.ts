@@ -38,10 +38,6 @@ module.exports = class MyDevice extends Homey.Device {
 
     this.alfenApi = new AlfenApi(this.log, settings.ip, settings.username, settings.password);
 
-    // Resume the transaction scan near where we left off, otherwise every app
-    // restart re-scans the charger's entire transaction history from offset 0.
-    this.#transactionOffset = Number(await this.getStoreValue('transactionOffset')) || 0;
-
     this.log(`Using socketIndex: ${this.socketIndex}`);
 
     this.#registerCapabilityListeners();
@@ -138,8 +134,6 @@ module.exports = class MyDevice extends Homey.Device {
       const { tag, offset, caughtUp } = await this.alfenApi.apiGetActiveChargeTag(this.socketIndex, this.#transactionOffset);
       this.#transactionOffset = offset;
       this.#activeChargeIdCaughtUp = caughtUp;
-      await this.setStoreValue('transactionOffset', offset).catch((err) => this.error('Error persisting transactionOffset:', err));
-      // Only report a tag once we've actually caught up; a mid-scan cursor doesn't reflect the current session yet.
       if (caughtUp) result.push({ capabilityId: 'active_charge_id', value: tag ?? '' });
     } catch (error) {
       this.error('Error refreshing active charge ID:', error);
