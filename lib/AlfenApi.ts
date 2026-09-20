@@ -229,8 +229,8 @@ export class AlfenApi {
     const SOCKET_PATTERN = /[Ss]ocket #(\d+)/;
     const TAG_PATTERN = /tag:\s*(\S+)/;
 
-    // Fetch up to 5 pages
-    for (let page = 0; page < 5; page++) {
+    // Fetch up to 5 pages (+/- 80 records)
+    for (let page = 0; page < 80; page += 15) {
       const options: HttpsPromiseOptions = {
         path: `/${apiUrl}/log?offset=${page}`,
         method: 'GET',
@@ -284,9 +284,7 @@ export class AlfenApi {
       if (!socketMatch) continue;
       const socket = socketMatch[1];
       const isConnect = message.includes('EV_CONNECTED_AUTHORIZED') || message.includes('CHARGING_POWER_ON') || message.includes('CABLE_CONNECTED');
-      const isDisconnect = message.includes('CHARGING_POWER_OFF') || message.includes('CHARGING_TERMINATING');
-
-      this.#log('Detected connect/disconnect event for socket', socket, ':', isConnect ? 'connect' : 'disconnect');
+      const isDisconnect = message.includes('CHARGING_POWER_OFF') || message.includes('CHARGING_TERMINATING') || message.includes('active tag cleared');
 
       if ((isConnect || isDisconnect) && message.includes('tag:')) {
         const tagKey = `socket-${socket}-start-tag`;
@@ -306,13 +304,20 @@ export class AlfenApi {
 
           if (isConnect) {
             const tagMatch = TAG_PATTERN.exec(message);
+            if (!tagMatch) {
+              this.#log(`No tag found in message: ${message}`);
+              return { socket, tag: null };
+            }
+
             this.#latestTag[tagKey] = tagMatch ? tagMatch[1] : null;
-            return { socket, tag: null };
+            return { socket, tag: tagMatch[1] };
           } else {
             this.#latestTag[tagKey] = null;
             return { socket, tag: null };
           }
         }
+      } else if (isDisconnect) {
+        return { socket, tag: null };
       }
     }
 
@@ -326,9 +331,6 @@ export class AlfenApi {
     if (logResult !== null) {
       return { tag: logResult.tag, offset: 0, caughtUp: true };
     }
-
-    this.#log('apiGetActiveChargeTag: no new log entry, returning latest tag for socketIndex:', socketIndex, 'latest tag:', this.#latestTag[`socket-${socketIndex}-start-tag`]);
-    return { tag: this.#latestTag[`socket-${socketIndex}-start-tag`], offset: 0, caughtUp: true };
   }
 
   async #apiGetChargingLimit(): Promise<Array<{ capabilityId: string; value: number | string | boolean }>> {
