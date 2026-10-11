@@ -14,6 +14,8 @@ import { Cap, type CapabilityId } from './homeyCapabilities';
 const apiUrl: string = 'api';
 
 export class AlfenApi {
+  static #sessionQueues = new Map<string, Promise<void>>();
+
   #agent: https.Agent | null = null;
   #retrieving: number = 0;
 
@@ -22,7 +24,7 @@ export class AlfenApi {
   #password: string;
 
   #latestLogs: string[] = [];
-  #latestTag: Record<string, any> = {};
+  #latestTag: Record<string, string | number | null> = {};
   #logOffset: number = 0;
 
   #log: (...args: any[]) => void;
@@ -33,6 +35,33 @@ export class AlfenApi {
     this.#ip = ip;
     this.#username = username;
     this.#password = password;
+  }
+
+  async withSession<T>(operation: (api: AlfenApi) => Promise<T>): Promise<T> {
+    const previous = AlfenApi.#sessionQueues.get(this.#ip) ?? Promise.resolve();
+    let release!: () => void;
+    const hold = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queued = previous.then(() => hold);
+    AlfenApi.#sessionQueues.set(this.#ip, queued);
+
+    await previous;
+    let loggedIn = false;
+    try {
+      await this.apiLogin();
+      loggedIn = true;
+      return await operation(this);
+    } finally {
+      try {
+        if (loggedIn) await this.apiLogout();
+      } finally {
+        release();
+        if (AlfenApi.#sessionQueues.get(this.#ip) === queued) {
+          AlfenApi.#sessionQueues.delete(this.#ip);
+        }
+      }
+    }
   }
 
   async apiLogin() {
@@ -231,13 +260,13 @@ export class AlfenApi {
 
     // Initialize if needed
     if (!(`socket-1-start-tag` in this.#latestTag)) {
-      this.#latestTag[`socket-1-start-tag`] = 0;
+      this.#latestTag[`socket-1-start-tag`] = null;
     }
     if (!(`socket-1-start-taglog` in this.#latestTag)) {
       this.#latestTag[`socket-1-start-taglog`] = null;
     }
     if (!(`socket-2-start-tag` in this.#latestTag)) {
-      this.#latestTag[`socket-2-start-tag`] = 0;
+      this.#latestTag[`socket-2-start-tag`] = null;
     }
     if (!(`socket-2-start-taglog` in this.#latestTag)) {
       this.#latestTag[`socket-2-start-taglog`] = null;
@@ -302,28 +331,28 @@ export class AlfenApi {
       const tagKey = `socket-${socket}-start-tag`;
       const taglogKey = `socket-${socket}-start-taglog`;
 
-      if ((isConnect || isDisconnect) && message.includes('tag:')) {
-        // Only update if this is a newer log entry
-        if (lineId > this.#latestTag[taglogKey]) {
-          this.#latestTag[taglogKey] = lineId;
+      if (!isConnect && !isDisconnect) continue;
 
-          if (isConnect) {
-            const tagMatch = TAG_PATTERN.exec(message);
-            if (!tagMatch) {
-              this.#log(`No tag found in message: ${message}`);
-              return { socket, tag: null };
-            }
+      // Ignore events already processed for this socket.
+      const latestLogId = this.#latestTag[taglogKey];
+      if (typeof latestLogId === 'number' && lineId <= latestLogId) continue;
 
-            this.#latestTag[tagKey] = tagMatch ? tagMatch[1] : null;
-            return { socket, tag: tagMatch[1] };
-          } else {
-            this.#latestTag[tagKey] = null;
-            return { socket, tag: null };
-          }
-        }
-      } else if (isDisconnect) {
+      this.#latestTag[taglogKey] = lineId;
+
+      if (isDisconnect) {
+        this.#latestTag[tagKey] = null;
         return { socket, tag: null };
       }
+
+      const tagMatch = TAG_PATTERN.exec(message);
+      if (!tagMatch) {
+        this.#log(`No tag found in message: ${message}`);
+        this.#latestTag[tagKey] = null;
+        return { socket, tag: null };
+      }
+
+      this.#latestTag[tagKey] = tagMatch[1];
+      return { socket, tag: tagMatch[1] };
     }
 
     return null;
@@ -332,8 +361,9 @@ export class AlfenApi {
   async apiGetActiveChargeTag(socketIndex: SocketIndex, offset: number = 0, maxDurationMs: number = 8000): Promise<{ tag: string | null; offset: number; caughtUp: boolean }> {
     this.#log('apiGetActiveChargeTag called with socketIndex:', socketIndex, 'offset:', offset);
 
-    const logResult = await this.#apiGetLatestLog(offset);
-    return { tag: this.#latestTag[`socket-${socketIndex}-start-tag`] ?? null, offset: 0, caughtUp: true };
+    await this.#apiGetLatestLog(offset);
+    const tag = this.#latestTag[`socket-${socketIndex}-start-tag`];
+    return { tag: typeof tag === 'string' ? tag : null, offset: 0, caughtUp: true };
   }
 
   async #apiGetChargingLimit(): Promise<Array<{ capabilityId: string; value: number | string | boolean }>> {

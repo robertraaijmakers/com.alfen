@@ -19,6 +19,8 @@ module.exports = class MyDevice extends Homey.Device {
   #activeChargeIdInitialized: boolean = false;
   #activeChargeIdCaughtUp: boolean = false;
   #refreshing: boolean = false;
+  #operationQueue: Promise<void> = Promise.resolve();
+  #pendingCapabilityWrites: Map<string, { value: string | number | boolean; requestedAt: number }> = new Map();
 
   /**
    * onInit is called when the device is initialized.
@@ -77,37 +79,33 @@ module.exports = class MyDevice extends Homey.Device {
   }
 
   async refreshDevice() {
-    // The interval timer doesn't await the previous run, so a slow transaction
-    // scan (see #refreshActiveChargeId) could otherwise overlap with the next tick.
+    // Do not queue every timer tick: one fresh poll is enough after the current one.
     if (this.#refreshing) {
       this.log('Refresh already in progress, skipping this tick.');
       return;
     }
     this.#refreshing = true;
 
-    this.log('Refresh Device');
-    let result: { capabilityId: string; value: string | number | boolean }[] | null = null;
-
     try {
-      try {
-        await this.alfenApi.apiLogin();
+      await this.#enqueueOperation(async () => {
+        this.log('Refresh Device');
+
         try {
-          result = await this.alfenApi.apiGetActualValues(this.socketIndex);
-          if (result && this.#shouldRefreshActiveChargeId(result)) {
-            await this.#refreshActiveChargeId(result);
-          }
+          const result = await this.alfenApi.withSession(async (api) => {
+            const capabilities = await api.apiGetActualValues(this.socketIndex);
+            if (this.#shouldRefreshActiveChargeId(capabilities)) {
+              await this.#refreshActiveChargeId(api, capabilities);
+            }
+            return capabilities;
+          });
+
+          await this.updateCapabilities(result);
+        } catch (error) {
+          this.log('Error refreshing device:', error);
         } finally {
-          // Only logout when login actually succeeded.
-          await this.alfenApi.apiLogout();
+          this.#refreshing = false;
         }
-      } catch (error) {
-        this.log('Error refreshing device:', error);
-      }
-
-      if (result == null) return;
-
-      // Parse result values
-      await this.updateCapabilities(result);
+      });
     } finally {
       this.#refreshing = false;
     }
@@ -122,22 +120,62 @@ module.exports = class MyDevice extends Homey.Device {
     if (!this.#activeChargeIdInitialized || !this.#activeChargeIdCaughtUp) return true;
 
     const newState = result.find((r) => r.capabilityId === 'evcharger_charging_state')?.value;
-    return typeof newState === 'string' && newState !== this.#lastChargingState;
+    if (typeof newState !== 'string') return false;
+
+    if (newState !== this.#lastChargingState) return true;
+
+    // The authorization log can arrive after the first connected-state poll.
+    // Keep checking until a tag is found instead of treating an empty scan as final.
+    const activeChargeId = this.getCapabilityValue('active_charge_id');
+    return newState !== 'plugged_out' && (activeChargeId === '' || activeChargeId == null);
   }
 
-  async #refreshActiveChargeId(result: { capabilityId: string; value: string | number | boolean }[]): Promise<void> {
+  async #refreshActiveChargeId(api: AlfenApi, result: { capabilityId: string; value: string | number | boolean }[]): Promise<void> {
     const newState = result.find((r) => r.capabilityId === 'evcharger_charging_state')?.value;
     if (typeof newState === 'string') this.#lastChargingState = newState;
     this.#activeChargeIdInitialized = true;
 
     try {
-      const { tag, offset, caughtUp } = await this.alfenApi.apiGetActiveChargeTag(this.socketIndex, this.#transactionOffset);
+      const { tag, offset, caughtUp } = await api.apiGetActiveChargeTag(this.socketIndex, this.#transactionOffset);
       this.#transactionOffset = offset;
       this.#activeChargeIdCaughtUp = caughtUp;
       if (caughtUp) result.push({ capabilityId: 'active_charge_id', value: tag ?? '' });
     } catch (error) {
       this.error('Error refreshing active charge ID:', error);
     }
+  }
+
+  #enqueueOperation<T>(operation: () => Promise<T>): Promise<T> {
+    const queued = this.#operationQueue.then(operation, operation);
+    this.#operationQueue = queued.then(
+      () => undefined,
+      () => undefined,
+    );
+    return queued;
+  }
+
+  async #writeCapabilities(
+    expectedValues: Array<{ capabilityId: string; value: string | number | boolean }>,
+    operation: (api: AlfenApi) => Promise<unknown>,
+  ): Promise<void> {
+    const pendingWrites = expectedValues.map(({ capabilityId, value }) => {
+      const pending = { value, requestedAt: Date.now() };
+      this.#pendingCapabilityWrites.set(capabilityId, pending);
+      return { capabilityId, pending };
+    });
+
+    try {
+      await this.#enqueueOperation(() => this.alfenApi.withSession(operation));
+    } catch (error) {
+      for (const { capabilityId, pending } of pendingWrites) {
+        if (this.#pendingCapabilityWrites.get(capabilityId) === pending) {
+          this.#pendingCapabilityWrites.delete(capabilityId);
+        }
+      }
+      throw error;
+    }
+
+    await this.refreshDevice();
   }
 
   /**
@@ -177,20 +215,21 @@ module.exports = class MyDevice extends Homey.Device {
       password: newSettings.password as string,
     };
 
-    this.socketIndex = Number(settings.socketIndex ?? 1) === 2 ? 2 : 1;
+    await this.#enqueueOperation(async () => {
+      this.socketIndex = Number(settings.socketIndex ?? 1) === 2 ? 2 : 1;
 
-    // Close the previous session before replacing the client, otherwise the old
-    // undici Pool stays alive and the charger sees a stale logged-in session.
-    if (this.alfenApi) {
-      try {
-        await this.alfenApi.apiLogout();
-      } catch (err) {
-        this.log('Logout of previous AlfenApi failed (ignored):', err);
+      // Wait for in-flight charger operations before replacing its client.
+      if (this.alfenApi) {
+        try {
+          await this.alfenApi.apiLogout();
+        } catch (err) {
+          this.log('Logout of previous AlfenApi failed (ignored):', err);
+        }
       }
-    }
 
-    this.alfenApi = new AlfenApi(this.log, settings.ip, settings.username, settings.password);
-    this.log(`Using socketIndex: ${this.socketIndex}`);
+      this.alfenApi = new AlfenApi(this.log, settings.ip, settings.username, settings.password);
+      this.log(`Using socketIndex: ${this.socketIndex}`);
+    });
   }
 
   /**
@@ -203,7 +242,7 @@ module.exports = class MyDevice extends Homey.Device {
     }
     if (this.alfenApi) {
       try {
-        await this.alfenApi.apiLogout();
+        await this.#enqueueOperation(() => this.alfenApi.apiLogout());
       } catch (err) {
         this.log('Logout on delete failed (ignored):', err);
       }
@@ -255,6 +294,23 @@ module.exports = class MyDevice extends Homey.Device {
 
     for (const { capabilityId, value } of capabilitiesData) {
       try {
+        const pending = this.#pendingCapabilityWrites.get(capabilityId);
+        if (pending) {
+          const matchesRequestedValue = capabilityId === 'target_power'
+            && typeof value === 'number'
+            && typeof pending.value === 'number'
+            ? Math.abs(value - pending.value) <= 115
+            : value === pending.value;
+
+          if (matchesRequestedValue) {
+            this.#pendingCapabilityWrites.delete(capabilityId);
+          } else if (Date.now() - pending.requestedAt < 120_000) {
+            continue;
+          } else {
+            this.#pendingCapabilityWrites.delete(capabilityId);
+          }
+        }
+
         const hasCapability = this.hasCapability(capabilityId);
         if (!hasCapability) await this.addCapability(capabilityId).catch(this.error);
 
@@ -379,13 +435,10 @@ module.exports = class MyDevice extends Homey.Device {
     this.log('setOperativeMode', value);
 
     try {
-      await this.alfenApi.apiLogin();
-      await this.alfenApi.apiSetOperativeMode(value);
+      await this.#writeCapabilities([], (api) => api.apiSetOperativeMode(value));
     } catch (error) {
       this.log('Error setting charge type:', error);
       throw new Error(`${error}`);
-    } finally {
-      await this.alfenApi.apiLogout();
     }
   }
 
@@ -428,29 +481,25 @@ module.exports = class MyDevice extends Homey.Device {
     this.log('setChargingEnabled', { enabled, targetWatts });
 
     try {
-      await this.alfenApi.apiLogin();
-      await this.alfenApi.apiSetChargingLimit(targetWatts, this.#detectActivePhases());
+      await this.#writeCapabilities([
+        { capabilityId: 'target_power', value: targetWatts },
+        { capabilityId: 'evcharger_charging', value: enabled },
+      ], (api) =>
+        api.apiSetChargingLimit(targetWatts, this.#detectActivePhases()));
     } catch (error) {
       this.log('Error setting charging enabled state via charging limit:', error);
       throw new Error(`${error}`);
-    } finally {
-      await this.alfenApi.apiLogout();
     }
-
-    await this.refreshDevice();
   }
 
   async #setChargeType(value: string) {
     this.log('setChargeType', value);
 
     try {
-      await this.alfenApi.apiLogin();
-      await this.alfenApi.apiSetChargeType(value);
+      await this.#writeCapabilities([{ capabilityId: 'chargetype', value }], (api) => api.apiSetChargeType(value));
     } catch (error) {
       this.log('Error setting charge type:', error);
       throw new Error(`${error}`);
-    } finally {
-      await this.alfenApi.apiLogout();
     }
   }
 
@@ -458,13 +507,10 @@ module.exports = class MyDevice extends Homey.Device {
     this.log('setComfortChargeLevel', value);
 
     try {
-      await this.alfenApi.apiLogin();
-      await this.alfenApi.apiSetComfortChargeLevel(value);
+      await this.#writeCapabilities([{ capabilityId: 'comfortchargelevel', value }], (api) => api.apiSetComfortChargeLevel(value));
     } catch (error) {
       this.log('Error setting comfort charge level:', error);
       throw new Error(`${error}`);
-    } finally {
-      await this.alfenApi.apiLogout();
     }
   }
 
@@ -472,13 +518,10 @@ module.exports = class MyDevice extends Homey.Device {
     this.log('setGreenSharePercentage', value);
 
     try {
-      await this.alfenApi.apiLogin();
-      await this.alfenApi.apiSetGreenSharePercentage(value);
+      await this.#writeCapabilities([{ capabilityId: 'greenshare', value }], (api) => api.apiSetGreenSharePercentage(value));
     } catch (error) {
       this.log('Error setting green share percentage:', error);
       throw new Error(`${error}`);
-    } finally {
-      await this.alfenApi.apiLogout();
     }
   }
 
@@ -486,13 +529,10 @@ module.exports = class MyDevice extends Homey.Device {
     this.log('setAuthMode', value);
 
     try {
-      await this.alfenApi.apiLogin();
-      await this.alfenApi.apiSetAuthMode(value);
+      await this.#writeCapabilities([{ capabilityId: 'authmode', value }], (api) => api.apiSetAuthMode(value));
     } catch (error) {
       this.log('Error setting auth mode:', error);
       throw new Error(`${error}`);
-    } finally {
-      await this.alfenApi.apiLogout();
     }
   }
 
@@ -500,13 +540,10 @@ module.exports = class MyDevice extends Homey.Device {
     this.log('setChargeID', value);
 
     try {
-      await this.alfenApi.apiLogin();
-      await this.alfenApi.apiSetChargeID(value);
+      await this.#writeCapabilities([{ capabilityId: 'chargeid', value }], (api) => api.apiSetChargeID(value));
     } catch (error) {
       this.log('Error setting charge ID:', error);
       throw new Error(`${error}`);
-    } finally {
-      await this.alfenApi.apiLogout();
     }
   }
 
@@ -514,16 +551,16 @@ module.exports = class MyDevice extends Homey.Device {
     this.log('enablePlugAndCharge', chargeID);
 
     try {
-      await this.alfenApi.apiLogin();
-      // First set the charge ID
-      await this.alfenApi.apiSetChargeID(chargeID);
-      // Then set auth mode to Plug & Charge (0)
-      await this.alfenApi.apiSetAuthMode('0');
+      await this.#writeCapabilities([
+        { capabilityId: 'chargeid', value: chargeID },
+        { capabilityId: 'authmode', value: '0' },
+      ], async (api) => {
+        await api.apiSetChargeID(chargeID);
+        await api.apiSetAuthMode('0');
+      });
     } catch (error) {
       this.log('Error enabling Plug & Charge:', error);
       throw new Error(`${error}`);
-    } finally {
-      await this.alfenApi.apiLogout();
     }
   }
 
@@ -531,16 +568,16 @@ module.exports = class MyDevice extends Homey.Device {
     this.log('enableRFID');
 
     try {
-      await this.alfenApi.apiLogin();
-      // First clear the charge ID
-      await this.alfenApi.apiSetChargeID('');
-      // Then set auth mode to RFID (2)
-      await this.alfenApi.apiSetAuthMode('2');
+      await this.#writeCapabilities([
+        { capabilityId: 'chargeid', value: '' },
+        { capabilityId: 'authmode', value: '2' },
+      ], async (api) => {
+        await api.apiSetChargeID('');
+        await api.apiSetAuthMode('2');
+      });
     } catch (error) {
       this.log('Error enabling RFID:', error);
       throw new Error(`${error}`);
-    } finally {
-      await this.alfenApi.apiLogout();
     }
   }
 
@@ -548,13 +585,10 @@ module.exports = class MyDevice extends Homey.Device {
     this.log('rebootWallbox');
 
     try {
-      await this.alfenApi.apiLogin();
-      await this.alfenApi.apiRebootEvCharger();
+      await this.#writeCapabilities([], (api) => api.apiRebootEvCharger());
     } catch (error) {
       this.log('Error rebooting wallbox:', error);
       throw new Error(`${error}`);
-    } finally {
-      await this.alfenApi.apiLogout();
     }
 
     return true;
@@ -564,16 +598,12 @@ module.exports = class MyDevice extends Homey.Device {
     this.log('setStationLimit', value);
 
     try {
-      await this.alfenApi.apiLogin();
-      await this.alfenApi.apiSetChargingLimit(value, this.#detectActivePhases());
+      await this.#writeCapabilities([{ capabilityId: 'target_power', value }], (api) =>
+        api.apiSetChargingLimit(value, this.#detectActivePhases()));
     } catch (error) {
       this.log('Error setting station limit:', error);
       throw new Error(`${error}`);
-    } finally {
-      await this.alfenApi.apiLogout();
     }
-
-    await this.refreshDevice();
 
     return true;
   }
@@ -582,13 +612,11 @@ module.exports = class MyDevice extends Homey.Device {
     this.log('setCurrentLimit', value, 'socket', this.socketIndex);
 
     try {
-      await this.alfenApi.apiLogin();
-      await this.alfenApi.apiSetCurrentLimit(value, this.socketIndex);
+      await this.#writeCapabilities([{ capabilityId: 'measure_current.limit', value }], (api) =>
+        api.apiSetCurrentLimit(value, this.socketIndex));
     } catch (error) {
       this.log('Error setting current limit:', error);
       throw new Error(`${error}`);
-    } finally {
-      await this.alfenApi.apiLogout();
     }
 
     return true;

@@ -57,23 +57,15 @@ module.exports = class MyDriver extends Homey.Driver {
       }
 
       try {
-        await alfenApi.apiLogin();
-      } catch (error) {
-        this.log(error);
-        throw new Error('Error logging in to charger, note that your Homey should be on the same subnet as your charger. This is a fysical limitation by Alfen. Error: ' + error);
-      }
-
-      try {
-        const details = await alfenApi.apiGetChargerDetails();
+        const details = await alfenApi.withSession((api) => api.apiGetChargerDetails());
 
         this.infoData = details.info; // InfoResponse
         this.socketsInfo = details.sockets; // Parsed sockets info
 
-        await alfenApi.apiLogout();
         this.log(details);
       } catch (error) {
         this.log(error);
-        throw new Error("Login was successful, but couldn't retrieve charge information. Your charger is probably not supported or has firmware incompatible with this Homey app. Error: " + error);
+        throw new Error("Couldn't connect to the charger or retrieve its information. Check that Homey is on the same subnet as the charger, and that the charger is supported. Error: " + error);
       }
 
       return true;
