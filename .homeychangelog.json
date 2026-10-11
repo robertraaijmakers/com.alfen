@@ -42,5 +42,8 @@
   },
   "2.1.3": {
     "en": "Fixing concurrency"
+  },
+  "2.1.4": {
+    "en": "Trying a fix for setting the limit through a device card."
   }
 }

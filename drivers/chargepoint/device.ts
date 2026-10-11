@@ -594,8 +594,19 @@ module.exports = class MyDevice extends Homey.Device {
     return true;
   }
 
-  async #setStationLimit(value: number) {
-    this.log('setStationLimit', value);
+  /** Snap a requested power to the 230 W step used by the capability and clamp to 0..max. */
+  #normalizeTargetPower(value: number): number {
+    const step = 230;
+    const max = this.#lastTargetPowerMax != null && this.#lastTargetPowerMax > 0 ? this.#lastTargetPowerMax : 22080;
+    const requested = Number.isFinite(value) ? value : 0;
+    const snapped = Math.round(requested / step) * step;
+
+    return Math.min(Math.max(snapped, 0), max);
+  }
+
+  async #setStationLimit(requestedValue: number) {
+    const value = this.#normalizeTargetPower(requestedValue);
+    this.log('setStationLimit', { requestedValue, value });
 
     try {
       await this.#writeCapabilities([{ capabilityId: 'target_power', value }], (api) =>
