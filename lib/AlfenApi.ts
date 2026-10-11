@@ -229,6 +229,20 @@ export class AlfenApi {
     const SOCKET_PATTERN = /[Ss]ocket #(\d+)/;
     const TAG_PATTERN = /tag:\s*(\S+)/;
 
+    // Initialize if needed
+    if (!(`socket-1-start-tag` in this.#latestTag)) {
+      this.#latestTag[`socket-1-start-tag`] = 0;
+    }
+    if (!(`socket-1-start-taglog` in this.#latestTag)) {
+      this.#latestTag[`socket-1-start-taglog`] = null;
+    }
+    if (!(`socket-2-start-tag` in this.#latestTag)) {
+      this.#latestTag[`socket-2-start-tag`] = 0;
+    }
+    if (!(`socket-2-start-taglog` in this.#latestTag)) {
+      this.#latestTag[`socket-2-start-taglog`] = null;
+    }
+
     // Fetch up to 5 pages (+/- 80 records)
     for (let page = 0; page < 80; page += 15) {
       const options: HttpsPromiseOptions = {
@@ -285,19 +299,10 @@ export class AlfenApi {
       const socket = socketMatch[1];
       const isConnect = message.includes('EV_CONNECTED_AUTHORIZED') || message.includes('CHARGING_POWER_ON') || message.includes('CABLE_CONNECTED');
       const isDisconnect = message.includes('CHARGING_POWER_OFF') || message.includes('CHARGING_TERMINATING') || message.includes('active tag cleared');
+      const tagKey = `socket-${socket}-start-tag`;
+      const taglogKey = `socket-${socket}-start-taglog`;
 
       if ((isConnect || isDisconnect) && message.includes('tag:')) {
-        const tagKey = `socket-${socket}-start-tag`;
-        const taglogKey = `socket-${socket}-start-taglog`;
-
-        // Initialize if needed
-        if (!(taglogKey in this.#latestTag)) {
-          this.#latestTag[taglogKey] = 0;
-        }
-        if (!(tagKey in this.#latestTag)) {
-          this.#latestTag[tagKey] = null;
-        }
-
         // Only update if this is a newer log entry
         if (lineId > this.#latestTag[taglogKey]) {
           this.#latestTag[taglogKey] = lineId;
@@ -328,9 +333,7 @@ export class AlfenApi {
     this.#log('apiGetActiveChargeTag called with socketIndex:', socketIndex, 'offset:', offset);
 
     const logResult = await this.#apiGetLatestLog(offset);
-    if (logResult !== null) {
-      return { tag: logResult.tag, offset: 0, caughtUp: true };
-    }
+    return { tag: this.#latestTag[`socket-${socketIndex}-start-tag`] ?? null, offset: 0, caughtUp: true };
   }
 
   async #apiGetChargingLimit(): Promise<Array<{ capabilityId: string; value: number | string | boolean }>> {
