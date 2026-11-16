@@ -1,51 +1,144 @@
 [
-    {
-        "id": "ip",
-        "type": "text",
-        "label": {
-            "en": "IP address",
-            "nl": "IP-adres"
-        },
-        "hint": {
-            "en": "The ip address of the Alfen charger, this must be a static IP address.",
-            "nl": "Het IP-adres van de Alfen laadpaal. Dit moet een vast (statisch) IP-adres zijn."
-        }
+  {
+    "id": "ip",
+    "type": "text",
+    "label": {
+      "en": "IP address",
+      "nl": "IP-adres"
     },
-    {
-        "id": "username",
-        "type": "text",
-        "label": {
-            "en": "Username",
-            "nl": "Gebruikersnaam"
-        },
-        "hint": {
-            "en": "The username to authenticate towards the charge point",
-            "nl": "De gebruikersnaam om te authenticeren bij de laadpaal."
-        }
-    },
-    {
-        "id": "password",
-        "type": "password",
-        "label": {
-            "en": "Password",
-            "nl": "Wachtwoord"
-        },
-        "hint": {
-            "en": "The password to authenticate towards the charge point",
-            "nl": "Het wachtwoord om te authenticeren bij de laadpaal."
-        }
-    },
-    {
-        "id": "socketIndex",
-        "type": "number",
-        "label": {
-            "en": "Socket",
-            "nl": "Aansluiting"
-        },
-        "value": 1,
-        "attr": {
-            "min": 1,
-            "max": 2
-        }
+    "hint": {
+      "en": "The ip address of the Alfen charger, this must be a static IP address.",
+      "nl": "Het IP-adres van de Alfen laadpaal. Dit moet een vast (statisch) IP-adres zijn."
     }
+  },
+  {
+    "id": "username",
+    "type": "text",
+    "label": {
+      "en": "Username",
+      "nl": "Gebruikersnaam"
+    },
+    "hint": {
+      "en": "The username to authenticate towards the charge point",
+      "nl": "De gebruikersnaam om te authenticeren bij de laadpaal."
+    }
+  },
+  {
+    "id": "password",
+    "type": "password",
+    "label": {
+      "en": "Password",
+      "nl": "Wachtwoord"
+    },
+    "hint": {
+      "en": "The password to authenticate towards the charge point",
+      "nl": "Het wachtwoord om te authenticeren bij de laadpaal."
+    }
+  },
+  {
+    "id": "socketIndex",
+    "type": "number",
+    "label": {
+      "en": "Socket",
+      "nl": "Aansluiting"
+    },
+    "value": 1,
+    "attr": {
+      "min": 1,
+      "max": 2
+    }
+  },
+  {
+    "id": "pollInterval",
+    "type": "number",
+    "label": {
+      "en": "Poll interval for 'login per poll' (seconds)",
+      "nl": "Pollinterval bij 'login per poll' (seconden)"
+    },
+    "hint": {
+      "en": "How often Homey reads the charger in 'On - login per poll' (30-900 s, default 30). Every poll logs in and out, and every login costs the charger a little memory that only a reboot gives back, so longer is gentler. 'On - stay logged in' uses its own interval (next setting).",
+      "nl": "Hoe vaak Homey de laadpaal uitleest bij 'Aan - login per poll' (30-900 s, standaard 30). Elke poll logt in en uit, en elke login kost de laadpaal een beetje geheugen dat pas bij een herstart terugkomt, dus langer is zachter. 'Aan - ingelogd blijven' heeft een eigen interval (volgende instelling)."
+    },
+    "value": 30,
+    "attr": {
+      "min": 30,
+      "max": 900,
+      "step": 10
+    }
+  },
+  {
+    "id": "fastPollInterval",
+    "type": "number",
+    "label": {
+      "en": "Poll interval when staying logged in (seconds)",
+      "nl": "Pollinterval bij ingelogd blijven (seconden)"
+    },
+    "hint": {
+      "en": "How often Homey reads the charger in 'On - stay logged in' (1-60 s, default 5). No logins are made per poll, so a short interval does not use up the charger's memory. Login guard: if the session is lost twice within 15 min (for example Eve/MyEve/ACE logged in), Homey pauses reads for 15 min; writes from flows still go through.",
+      "nl": "Hoe vaak Homey de laadpaal uitleest bij 'Aan - ingelogd blijven' (1-60 s, standaard 5). Er wordt niet per poll ingelogd, dus een kort interval kost het geheugen van de laadpaal niets. Login-bewaking: als de sessie binnen 15 min twee keer wegvalt (bijvoorbeeld Eve/MyEve/ACE logde in), pauzeert Homey het uitlezen 15 min; schrijfacties uit flows gaan wel door."
+    },
+    "value": 5,
+    "attr": {
+      "min": 1,
+      "max": 60,
+      "step": 1
+    }
+  },
+  {
+    "id": "releaseMinutes",
+    "type": "number",
+    "value": 60,
+    "attr": {
+      "min": 5,
+      "max": 60,
+      "step": 5
+    },
+    "label": {
+      "en": "Max time 'Off - no login' (minutes)",
+      "nl": "Maximale tijd 'Uit - niet inloggen' (minuten)"
+    },
+    "hint": {
+      "en": "How long 'Off - no login' lasts at most (5-60 min). After that Homey switches to 'On - login per poll' by itself.",
+      "nl": "Hoe lang 'Uit - niet inloggen' maximaal duurt (5-60 min). Daarna schakelt Homey zelf naar 'Aan - login per poll'."
+    }
+  },
+  {
+    "id": "allowProfileWrites",
+    "type": "checkbox",
+    "value": true,
+    "label": {
+      "en": "Allow Start/Stop and target power",
+      "nl": "Start/Stop en doelvermogen toestaan"
+    },
+    "hint": {
+      "en": "Start/Stop, the target power slider and Homey Energy write the charger's charging profile (0 W = blocks every charge mode until something writes it again). Off = these writes are refused. Charge mode, comfort level and green share always work.",
+      "nl": "Start/Stop, de doelvermogen-schuif en Homey Energy schrijven het laadprofiel van de laadpaal (0 W = blokkeert elke laadmodus tot het opnieuw geschreven wordt). Uit = deze schrijfacties worden geweigerd. Laadmodus, comfortniveau en groen-aandeel werken altijd."
+    }
+  },
+  {
+    "id": "readChargeTag",
+    "type": "checkbox",
+    "value": true,
+    "label": {
+      "en": "Read active charge tag from the log",
+      "nl": "Actieve laadtag uit het logboek lezen"
+    },
+    "hint": {
+      "en": "Reads up to 5 log pages from the charger when a session changes, to fill 'active charge ID'. Off = less load on the charger.",
+      "nl": "Leest tot 5 logpagina's van de laadpaal bij een sessiewissel om 'actieve laad-ID' te vullen. Uit = minder belasting van de laadpaal."
+    }
+  },
+  {
+    "id": "readP1",
+    "type": "checkbox",
+    "value": false,
+    "label": {
+      "en": "Show P1 meter values (as the charger reads them)",
+      "nl": "P1-meterwaarden tonen (zoals de laadpaal ze leest)"
+    },
+    "hint": {
+      "en": "Adds P1 current L1-L3 and P1 power: the smart-meter data the charger uses for load balancing. Read in the same request as the other values (no extra login). If these stay at 0 or freeze, the charger has lost its P1 feed.",
+      "nl": "Voegt P1 stroom L1-L3 en P1 vermogen toe: de slimme-meterdata die de laadpaal gebruikt voor load balancing. Gelezen in hetzelfde verzoek als de andere waarden (geen extra login). Blijven ze op 0 of bevriezen ze, dan heeft de laadpaal zijn P1-voeding verloren."
+    }
+  }
 ]

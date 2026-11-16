@@ -15,6 +15,17 @@ export interface DeviceSettings {
   username: string;
   password: string;
   socketIndex?: number;
+  /** Poll interval in seconds (30-3600), default 120 */
+  pollInterval?: number;
+  fastPollInterval?: number;
+  /** Allow Start/Stop and target power (charging profile) writes, default false */
+  allowProfileWrites?: boolean;
+  /** Read the active charge tag from the charger log, default false */
+  readChargeTag?: boolean;
+  /** Read P1 / smart meter values as the charger sees them, default false */
+  readP1?: boolean;
+  /** Minutes the device toggle releases the login for Eve before reconnecting (5-60), default 60 */
+  releaseMinutes?: number;
   /** Total number of sockets of the charger (1 = Single, 2 = Duo) */
   socketCount?: number;
 }

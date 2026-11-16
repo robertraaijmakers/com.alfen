@@ -33,6 +33,15 @@ export const Cap = {
   CurrentActiveLb: 'measure_current.activelb',
 
   MeasureFrequency: 'measure_frequency',
+
+  Bootups: 'bootups',
+  UptimeHours: 'uptime_hours',
+  BootReason: 'boot_reason',
+
+  P1CurrentL1: 'measure_current.p1_l1',
+  P1CurrentL2: 'measure_current.p1_l2',
+  P1CurrentL3: 'measure_current.p1_l3',
+  P1PowerTotal: 'measure_power.p1',
 } as const;
 
 export type CapabilityId = (typeof Cap)[keyof typeof Cap];

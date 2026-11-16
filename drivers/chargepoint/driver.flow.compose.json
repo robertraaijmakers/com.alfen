@@ -1,268 +1,509 @@
 {
-    "triggers": [
+  "triggers": [
+    {
+      "id": "operatingmode_changed",
+      "title": {
+        "en": "Status changed",
+        "nl": "Status gewijzigd"
+      }
+    },
+    {
+      "id": "comfortchargelevel_changed",
+      "title": {
+        "en": "Comfort charge level changed",
+        "nl": "Comfort laadniveau veranderd"
+      },
+      "tokens": [
         {
-            "id": "operatingmode_changed",
-            "title": {
-                "en": "Status changed",
-                "nl": "Status gewijzigd"
-            }
-        },
-        {
-            "id": "comfortchargelevel_changed",
-            "title": {
-                "en": "Comfort charge level changed",
-                "nl": "Comfort laadniveau veranderd"
-            },
-            "tokens": [
-                {
-                    "name": "comfortchargelevel",
-                    "type": "number",
-                    "title": {
-                        "en": "Comfort charge level",
-                        "nl": "Comfort laadniveau"
-                    },
-                    "example": 2500
-                }
-            ]
-        },
-        {
-            "id": "chargetype_changed",
-            "title": {
-                "en": "Charge mode changed",
-                "nl": "Manier van laden veranderd"
-            },
-            "tokens": [
-                {
-                    "name": "chargetype",
-                    "type": "string",
-                    "title": {
-                        "en": "Charge mode",
-                        "nl": "Manier van laden"
-                    },
-                    "example": "1"
-                }
-            ]
+          "name": "comfortchargelevel",
+          "type": "number",
+          "title": {
+            "en": "Comfort charge level",
+            "nl": "Comfort laadniveau"
+          },
+          "example": 2500
         }
-    ],
-    "actions": [
+      ]
+    },
+    {
+      "id": "chargetype_changed",
+      "title": {
+        "en": "Charge mode changed",
+        "nl": "Manier van laden veranderd"
+      },
+      "tokens": [
         {
-            "id": "greenshare",
-            "title": {
-                "en": "Set green share %",
-                "nl": "Zet % groene stroom"
-            },
-            "titleFormatted": {
-                "en": "Set green share to [[greenshare]]",
-                "nl": "Zet aandeel groene stroom op [[greenshare]]"
-            },
-            "args": [
-                {
-                    "type": "range",
-                    "name": "greenshare",
-                    "title": {
-                        "en": "Green share %",
-                        "nl": "Groene stroom %"
-                    },
-                    "min": 0,
-                    "max": 100,
-                    "step": 1,
-                    "label": "%"
-                }
-            ]
-        },
-        {
-            "id": "comfortchargelevel",
-            "title": {
-                "en": "Set comfort charge level",
-                "nl": "Zet comfort laadniveau"
-            },
-            "titleFormatted": {
-                "en": "Set comfort charge level to [[comfortchargelevel]]",
-                "nl": "Zet comfort laadniveau op [[comfortchargelevel]]"
-            },
-            "args": [
-                {
-                    "type": "range",
-                    "name": "comfortchargelevel",
-                    "title": {
-                        "en": "Comfort charge level",
-                        "nl": "Comfort laadniveau"
-                    },
-                    "min": 1400,
-                    "max": 11000,
-                    "step": 1,
-                    "label": "W"
-                }
-            ]
-        },
-        {
-            "id": "chargetype",
-            "title": {
-                "en": "Set charge type",
-                "nl": "Zet manier van laden"
-            },
-            "titleFormatted": {
-                "en": "Set charge type to [[chargetype]]",
-                "nl": "Zet manier van laden op [[chargetype]]"
-            },
-            "args": [
-                {
-                    "type": "dropdown",
-                    "name": "chargetype",
-                    "title": {
-                        "en": "Charge type",
-                        "nl": "Manier van laden"
-                    },
-                    "values": [
-                        {
-                            "id": "0",
-                            "title": {
-                                "en": "Default",
-                                "nl": "Standaard"
-                            }
-                        },
-                        {
-                            "id": "1",
-                            "title": {
-                                "en": "Comfort + Solar",
-                                "nl": "Comfortable + Groen"
-                            }
-                        },
-                        {
-                            "id": "2",
-                            "title": {
-                                "en": "100% green",
-                                "nl": "100% groen"
-                            }
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "authmode",
-            "title": {
-                "en": "Set authentication mode",
-                "nl": "Zet authenticatie modus"
-            },
-            "titleFormatted": {
-                "en": "Set authentication mode to [[authmode]]",
-                "nl": "Zet authenticatie modus op [[authmode]]"
-            },
-            "args": [
-                {
-                    "type": "dropdown",
-                    "name": "authmode",
-                    "title": {
-                        "en": "Authentication mode",
-                        "nl": "Authenticatie modus"
-                    },
-                    "values": [
-                        {
-                            "id": "0",
-                            "title": {
-                                "en": "Plug and Charge",
-                                "nl": "Inpluggen en laden"
-                            }
-                        },
-                        {
-                            "id": "2",
-                            "title": {
-                                "en": "RFID",
-                                "nl": "RFID"
-                            }
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "id": "chargeid",
-            "title": {
-                "en": "Set Plug & Charge ID",
-                "nl": "Zet Plug & Charge ID"
-            },
-            "titleFormatted": {
-                "en": "Set Plug & Charge ID to [[chargeid]]",
-                "nl": "Zet Plug & Charge ID op [[chargeid]]"
-            },
-            "hint": {
-                "en": "Set the Plug & Charge ID. Leave empty to clear the ID when switching to RFID mode.",
-                "nl": "Zet het Plug & Charge ID. Laat leeg om het ID te wissen bij overschakelen naar RFID-modus."
-            },
-            "args": [
-                {
-                    "type": "text",
-                    "name": "chargeid",
-                    "title": {
-                        "en": "Charge ID",
-                        "nl": "Laad ID"
-                    },
-                    "placeholder": {
-                        "en": "ABC22DK112233 or leave empty",
-                        "nl": "ABC22DK112233 of laat leeg"
-                    }
-                }
-            ]
-        },
-        {
-            "id": "enable_plug_and_charge",
-            "title": {
-                "en": "Enable Plug & Charge mode",
-                "nl": "Activeer Plug & Charge modus"
-            },
-            "titleFormatted": {
-                "en": "Enable Plug & Charge mode with ID [[chargeid]]",
-                "nl": "Activeer Plug & Charge modus met ID [[chargeid]]"
-            },
-            "hint": {
-                "en": "Sets auth mode to Plug & Charge (0) and sets the Plug & Charge ID in one action.",
-                "nl": "Zet authenticatie modus naar Plug & Charge (0) en stelt het Plug & Charge ID in één actie in."
-            },
-            "args": [
-                {
-                    "type": "text",
-                    "name": "chargeid",
-                    "title": {
-                        "en": "Charge ID",
-                        "nl": "Laad ID"
-                    },
-                    "placeholder": {
-                        "en": "ABC22DK112233",
-                        "nl": "ABC22DK112233"
-                    }
-                }
-            ]
-        },
-        {
-            "id": "enable_rfid",
-            "title": {
-                "en": "Enable RFID mode",
-                "nl": "Activeer RFID modus"
-            },
-            "titleFormatted": {
-                "en": "Enable RFID mode",
-                "nl": "Activeer RFID modus"
-            },
-            "hint": {
-                "en": "Sets auth mode to RFID (2) and clears the Plug & Charge ID in one action.",
-                "nl": "Zet authenticatie modus naar RFID (2) en wist het Plug & Charge ID in één actie."
-            }
-        },
-        {
-            "id": "reboot_wallbox",
-            "title": {
-                "en": "Reboot wallbox",
-                "nl": "Wallbox herstarten"
-            },
-            "titleFormatted": {
-                "en": "Reboot wallbox",
-                "nl": "Wallbox herstarten"
-            },
-            "hint": {
-                "en": "Sends a reboot command via POST /cmd. Interrupts active charging sessions; use during idle only. Useful for recovery after a freeze without restarting the Homey app.",
-                "nl": "Stuurt een reboot-commando via POST /cmd. Onderbreekt actieve laadsessies; alleen gebruiken in idle-toestand. Handig voor recovery na een vastloper zonder de Homey-app te herstarten."
-            }
+          "name": "chargetype",
+          "type": "string",
+          "title": {
+            "en": "Charge mode",
+            "nl": "Manier van laden"
+          },
+          "example": "1"
         }
-    ]
+      ]
+    },
+    {
+      "id": "wallbox_rebooted",
+      "title": {
+        "en": "Wallbox rebooted",
+        "nl": "Laadpaal is herstart"
+      },
+      "hint": {
+        "en": "Fires when the charger's boot count goes up (seen at the next poll).",
+        "nl": "Gaat af als het aantal opstarts van de laadpaal stijgt (gezien bij de volgende poll)."
+      },
+      "tokens": [
+        {
+          "name": "bootups",
+          "type": "number",
+          "title": {
+            "en": "Boot count",
+            "nl": "Aantal opstarts"
+          },
+          "example": 6551
+        },
+        {
+          "name": "boot_reason",
+          "type": "string",
+          "title": {
+            "en": "Boot reason",
+            "nl": "Opstartreden"
+          },
+          "example": "Watchdog reset"
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "greenshare",
+      "title": {
+        "en": "Set green share %",
+        "nl": "Zet % groene stroom"
+      },
+      "titleFormatted": {
+        "en": "Set green share to [[greenshare]]",
+        "nl": "Zet aandeel groene stroom op [[greenshare]]"
+      },
+      "args": [
+        {
+          "type": "range",
+          "name": "greenshare",
+          "title": {
+            "en": "Green share %",
+            "nl": "Groene stroom %"
+          },
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "label": "%"
+        }
+      ]
+    },
+    {
+      "id": "comfortchargelevel",
+      "title": {
+        "en": "Set comfort charge level",
+        "nl": "Zet comfort laadniveau"
+      },
+      "titleFormatted": {
+        "en": "Set comfort charge level to [[comfortchargelevel]]",
+        "nl": "Zet comfort laadniveau op [[comfortchargelevel]]"
+      },
+      "args": [
+        {
+          "type": "range",
+          "name": "comfortchargelevel",
+          "title": {
+            "en": "Comfort charge level",
+            "nl": "Comfort laadniveau"
+          },
+          "min": 1400,
+          "max": 11000,
+          "step": 1,
+          "label": "W"
+        }
+      ]
+    },
+    {
+      "id": "chargetype",
+      "title": {
+        "en": "Set charge type",
+        "nl": "Zet manier van laden"
+      },
+      "titleFormatted": {
+        "en": "Set charge type to [[chargetype]]",
+        "nl": "Zet manier van laden op [[chargetype]]"
+      },
+      "args": [
+        {
+          "type": "dropdown",
+          "name": "chargetype",
+          "title": {
+            "en": "Charge type",
+            "nl": "Manier van laden"
+          },
+          "values": [
+            {
+              "id": "0",
+              "title": {
+                "en": "Default",
+                "nl": "Standaard"
+              }
+            },
+            {
+              "id": "1",
+              "title": {
+                "en": "Comfort + Solar",
+                "nl": "Comfortable + Groen"
+              }
+            },
+            {
+              "id": "2",
+              "title": {
+                "en": "100% green",
+                "nl": "100% groen"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "authmode",
+      "title": {
+        "en": "Set authentication mode",
+        "nl": "Zet authenticatie modus"
+      },
+      "titleFormatted": {
+        "en": "Set authentication mode to [[authmode]]",
+        "nl": "Zet authenticatie modus op [[authmode]]"
+      },
+      "args": [
+        {
+          "type": "dropdown",
+          "name": "authmode",
+          "title": {
+            "en": "Authentication mode",
+            "nl": "Authenticatie modus"
+          },
+          "values": [
+            {
+              "id": "0",
+              "title": {
+                "en": "Plug and Charge",
+                "nl": "Inpluggen en laden"
+              }
+            },
+            {
+              "id": "2",
+              "title": {
+                "en": "RFID",
+                "nl": "RFID"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chargeid",
+      "title": {
+        "en": "Set Plug & Charge ID",
+        "nl": "Zet Plug & Charge ID"
+      },
+      "titleFormatted": {
+        "en": "Set Plug & Charge ID to [[chargeid]]",
+        "nl": "Zet Plug & Charge ID op [[chargeid]]"
+      },
+      "hint": {
+        "en": "Set the Plug & Charge ID. Leave empty to clear the ID when switching to RFID mode.",
+        "nl": "Zet het Plug & Charge ID. Laat leeg om het ID te wissen bij overschakelen naar RFID-modus."
+      },
+      "args": [
+        {
+          "type": "text",
+          "name": "chargeid",
+          "title": {
+            "en": "Charge ID",
+            "nl": "Laad ID"
+          },
+          "placeholder": {
+            "en": "ABC22DK112233 or leave empty",
+            "nl": "ABC22DK112233 of laat leeg"
+          }
+        }
+      ]
+    },
+    {
+      "id": "enable_plug_and_charge",
+      "title": {
+        "en": "Enable Plug & Charge mode",
+        "nl": "Activeer Plug & Charge modus"
+      },
+      "titleFormatted": {
+        "en": "Enable Plug & Charge mode with ID [[chargeid]]",
+        "nl": "Activeer Plug & Charge modus met ID [[chargeid]]"
+      },
+      "hint": {
+        "en": "Sets auth mode to Plug & Charge (0) and sets the Plug & Charge ID in one action.",
+        "nl": "Zet authenticatie modus naar Plug & Charge (0) en stelt het Plug & Charge ID in één actie in."
+      },
+      "args": [
+        {
+          "type": "text",
+          "name": "chargeid",
+          "title": {
+            "en": "Charge ID",
+            "nl": "Laad ID"
+          },
+          "placeholder": {
+            "en": "ABC22DK112233",
+            "nl": "ABC22DK112233"
+          }
+        }
+      ]
+    },
+    {
+      "id": "enable_rfid",
+      "title": {
+        "en": "Enable RFID mode",
+        "nl": "Activeer RFID modus"
+      },
+      "titleFormatted": {
+        "en": "Enable RFID mode",
+        "nl": "Activeer RFID modus"
+      },
+      "hint": {
+        "en": "Sets auth mode to RFID (2) and clears the Plug & Charge ID in one action.",
+        "nl": "Zet authenticatie modus naar RFID (2) en wist het Plug & Charge ID in één actie."
+      }
+    },
+    {
+      "id": "reboot_wallbox",
+      "title": {
+        "en": "Reboot wallbox",
+        "nl": "Wallbox herstarten"
+      },
+      "titleFormatted": {
+        "en": "Reboot wallbox",
+        "nl": "Wallbox herstarten"
+      },
+      "hint": {
+        "en": "Sends a reboot command via POST /cmd. Interrupts active charging sessions; use during idle only. Useful for recovery after a freeze without restarting the Homey app.",
+        "nl": "Stuurt een reboot-commando via POST /cmd. Onderbreekt actieve laadsessies; alleen gebruiken in idle-toestand. Handig voor recovery na een vastloper zonder de Homey-app te herstarten."
+      }
+    },
+    {
+      "id": "release_connection",
+      "title": {
+        "en": "Release the wallbox login (for Eve)",
+        "nl": "Laadpaal-login vrijgeven (voor Eve)"
+      },
+      "titleFormatted": {
+        "en": "Release the wallbox login for [[minutes]] minutes",
+        "nl": "Laadpaal-login [[minutes]] minuten vrijgeven"
+      },
+      "hint": {
+        "en": "Same as 'Off - no login' on the device: Homey logs out and stops polling so Eve/MyEve/ACE can log in; writes from Homey are refused meanwhile. After the minutes (max 60) Homey switches to 'On - login per poll'.",
+        "nl": "Hetzelfde als 'Uit - niet inloggen' op het apparaat: Homey logt uit en stopt met pollen zodat Eve/MyEve/ACE kan inloggen; schrijfacties vanuit Homey worden intussen geweigerd. Na de minuten (max 60) schakelt Homey naar 'Aan - login per poll'."
+      },
+      "args": [
+        {
+          "type": "number",
+          "name": "minutes",
+          "title": {
+            "en": "Minutes",
+            "nl": "Minuten"
+          },
+          "min": 5,
+          "max": 60,
+          "step": 5,
+          "placeholder": {
+            "en": "60",
+            "nl": "60"
+          }
+        }
+      ]
+    },
+    {
+      "id": "reconnect_connection",
+      "title": {
+        "en": "Reconnect to the wallbox",
+        "nl": "Opnieuw verbinden met de laadpaal"
+      },
+      "hint": {
+        "en": "Ends 'Off - no login' early: back to 'On - login per poll'.",
+        "nl": "Beëindigt 'Uit - niet inloggen' eerder: terug naar 'Aan - login per poll'."
+      }
+    },
+    {
+      "id": "set_connection_mode",
+      "title": {
+        "en": "Set the connection mode",
+        "nl": "Zet de verbindingsstand"
+      },
+      "titleFormatted": {
+        "en": "Set the connection to [[mode]]",
+        "nl": "Zet de verbinding op [[mode]]"
+      },
+      "hint": {
+        "en": "Same as the 'Homey connection' picker on the device. Use it for a day/night schedule, e.g. 'On - stay logged in' at night and 'On - login per poll' by day. 'Off - no login' lasts at most the setting 'Max time Off' (default 60 min), then Homey switches to 'On - login per poll'.",
+        "nl": "Hetzelfde als de keuze 'Homey-verbinding' op het apparaat. Handig voor een dag/nacht-schema, bv. 'Aan - ingelogd blijven' 's nachts en 'Aan - login per poll' overdag. 'Uit - niet inloggen' duurt maximaal de instelling 'Maximale tijd Uit' (standaard 60 min), daarna schakelt Homey naar 'Aan - login per poll'."
+      },
+      "args": [
+        {
+          "type": "dropdown",
+          "name": "mode",
+          "title": {
+            "en": "Connection",
+            "nl": "Verbinding"
+          },
+          "values": [
+            {
+              "id": "off",
+              "title": {
+                "en": "Off - no login (for Eve)",
+                "nl": "Uit - niet inloggen (voor Eve)"
+              }
+            },
+            {
+              "id": "interval",
+              "title": {
+                "en": "On - login per poll",
+                "nl": "Aan - login per poll"
+              }
+            },
+            {
+              "id": "continuous",
+              "title": {
+                "en": "On - stay logged in",
+                "nl": "Aan - ingelogd blijven"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "conditions": [
+    {
+      "id": "chargetype_is",
+      "title": {
+        "en": "Charge type is ...",
+        "nl": "Manier van laden is ..."
+      },
+      "titleFormatted": {
+        "en": "Charge type !{{is|is not}} [[chargetype]]",
+        "nl": "Manier van laden !{{is|is niet}} [[chargetype]]"
+      },
+      "args": [
+        {
+          "type": "dropdown",
+          "name": "chargetype",
+          "title": {
+            "en": "Charge type",
+            "nl": "Manier van laden"
+          },
+          "values": [
+            {
+              "id": "0",
+              "title": {
+                "en": "Default",
+                "nl": "Standaard"
+              }
+            },
+            {
+              "id": "1",
+              "title": {
+                "en": "Comfort + Solar",
+                "nl": "Comfortable + Groen"
+              }
+            },
+            {
+              "id": "2",
+              "title": {
+                "en": "100% green",
+                "nl": "100% groen"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "charging_blocked_by_profile",
+      "title": {
+        "en": "Charging is blocked by the charging profile",
+        "nl": "Laden wordt geblokkeerd door het laadprofiel"
+      },
+      "titleFormatted": {
+        "en": "Charging !{{is|is not}} blocked by the charging profile (below 6 A)",
+        "nl": "Laden !{{wordt|wordt niet}} geblokkeerd door het laadprofiel (onder 6 A)"
+      },
+      "hint": {
+        "en": "True when the charging profile (target power) allows less than 6 A on one phase (1380 W): no charge mode can charge.",
+        "nl": "Waar als het laadprofiel (doelvermogen) minder dan 6 A op één fase toestaat (1380 W): geen enkele laadmodus kan laden."
+      }
+    },
+    {
+      "id": "p1_feed_lost",
+      "title": {
+        "en": "P1 feed is lost",
+        "nl": "P1-voeding is weg"
+      },
+      "titleFormatted": {
+        "en": "P1 feed !{{is|is not}} lost for more than [[minutes]] minutes",
+        "nl": "P1-voeding !{{is|is niet}} langer dan [[minutes]] minuten weg"
+      },
+      "hint": {
+        "en": "Needs the setting 'Show P1 meter values'. True when the charger's P1 power value has not changed (or is missing) for longer than the given time.",
+        "nl": "Vereist de instelling 'P1-meterwaarden tonen'. Waar als de P1-vermogenswaarde van de laadpaal langer dan de opgegeven tijd niet veranderde (of ontbreekt)."
+      },
+      "args": [
+        {
+          "type": "number",
+          "name": "minutes",
+          "title": {
+            "en": "Minutes",
+            "nl": "Minuten"
+          },
+          "min": 1,
+          "max": 120,
+          "step": 1,
+          "placeholder": {
+            "en": "5",
+            "nl": "5"
+          }
+        }
+      ]
+    },
+    {
+      "id": "waiting_for_disconnect",
+      "title": {
+        "en": "Charger waits for the cable to be unplugged",
+        "nl": "Laadpaal wacht op uittrekken van de kabel"
+      },
+      "titleFormatted": {
+        "en": "Charger !{{is|is not}} waiting for the cable to be unplugged (latch)",
+        "nl": "Laadpaal !{{wacht|wacht niet}} op uittrekken van de kabel (latch)"
+      },
+      "hint": {
+        "en": "True when the status is 'Finish Wait Disconnect': the session is locked until the cable is unplugged and plugged in again.",
+        "nl": "Waar als de status 'Finish Wait Disconnect' is: de sessie zit vast tot de kabel uit en weer in gaat."
+      }
+    },
+    {
+      "id": "connection_released",
+      "title": {
+        "en": "Wallbox login is released",
+        "nl": "Laadpaal-login is vrijgegeven"
+      },
+      "titleFormatted": {
+        "en": "Wallbox login !{{is|is not}} released for Eve",
+        "nl": "Laadpaal-login !{{is|is niet}} vrijgegeven voor Eve"
+      }
+    }
+  ]
 }

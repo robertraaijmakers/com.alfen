@@ -57,6 +57,18 @@ function unique<T>(items: ReadonlyArray<T>): T[] {
  * Canonical prop ids (numeric) derived from your C# enums.
  * We also keep a small set of legacy string ids for firmwares that still expose those.
  */
+/**
+ * P1 / smart meter values as the charger itself reads them (used by its active load balancing).
+ * 212F_1..3 = phase currents (A, signed); 5221_16 = total power (W). Verified against a 20 Oct 2026
+ * diagnostics snapshot (212F_1..3 equal 5221_A..C; 5221_13..15 sum to 5221_16).
+ */
+export const p1Props = {
+  currentL1: '212F_1',
+  currentL2: '212F_2',
+  currentL3: '212F_3',
+  powerTotal: '5221_16',
+} as const;
+
 export const alfenProps = {
   general: {
     //AlfenGeneralPropId
@@ -65,6 +77,9 @@ export const alfenProps = {
     chargeID: 0x206300, //Plug & Charge ID
     stationLimit: 0x206200, //station maximum current (A)
     operativeMode: 0x205f00, // 0 = operative (charging active), 2 = in-operative (paused)
+    bootups: 0x205600, // number of boots (2056_0)
+    bootReason: 0x205700, // last boot reason text (2057_0)
+    uptime: 0x206000, // uptime in ms (2060_0)
   },
   solar: {
     //(only Single, not on Duo)
@@ -132,11 +147,11 @@ export const alfenProps = {
  * - Socket 2+: NO solar/greenshare (Greenshare works only on socket 1)
  * - Socket 2+: use forSocket(...) to request the socket-specific meter ids (e.g. 2221_x -> 3221_x)
  */
-export function getActualValuePropIds(socketIndex: SocketIndex): PropId[] {
+export function getActualValuePropIds(socketIndex: SocketIndex, includeP1: boolean = false): PropId[] {
   const s = alfenProps.socketBase;
 
   // Shared / station-wide (not socket dependent)
-  const shared: PropId[] = [alfenProps.general.temperatureInternal, alfenProps.general.stationLimit, alfenProps.general.authMode, alfenProps.general.chargeID, alfenProps.general.operativeMode];
+  const shared: PropId[] = [alfenProps.general.temperatureInternal, alfenProps.general.stationLimit, alfenProps.general.authMode, alfenProps.general.chargeID, alfenProps.general.operativeMode, alfenProps.general.bootups, alfenProps.general.bootReason, alfenProps.general.uptime];
 
   // Solar / GreenShare: ONLY for socket 1
   const solarSocket1Only: PropId[] = [alfenProps.solar.chargeType, alfenProps.solar.greenShare, alfenProps.solar.comfortChargeLevel];
@@ -178,14 +193,16 @@ export function getActualValuePropIds(socketIndex: SocketIndex): PropId[] {
   // Active LB max current (explicit per-socket prop id, NOT via forSocket offset)
   const lbCurrent: PropId[] = [alfenProps.loadbalancing.activeMaxCurrent[socketIndex]];
 
+  const p1: PropId[] = includeP1 ? [p1Props.currentL1, p1Props.currentL2, p1Props.currentL3, p1Props.powerTotal] : [];
+
   if (socketIndex === 1) {
-    return unique([...shared, ...solarSocket1Only, ...statusSocket1, ...meterCandidates, ...lbCurrent]);
+    return unique([...shared, ...solarSocket1Only, ...statusSocket1, ...meterCandidates, ...lbCurrent, ...p1]);
   }
 
   // Socket 2+: no solar/greenshare
   const meterSocket2: PropId[] = meterCandidates.map((id) => forSocket(id, 2));
 
-  return unique([...shared, ...statusSocket2, ...meterSocket2, ...lbCurrent]);
+  return unique([...shared, ...statusSocket2, ...meterSocket2, ...lbCurrent, ...p1]);
 }
 
 /**
@@ -202,6 +219,15 @@ export function getCapabilityMap(socketIndex: SocketIndex): Record<string, Capab
     [propIdToApiId(alfenProps.general.stationLimit)]: Cap.StationLimit,
     [propIdToApiId(alfenProps.general.authMode)]: Cap.AuthMode,
     [propIdToApiId(alfenProps.general.chargeID)]: Cap.ChargeID,
+    [propIdToApiId(alfenProps.general.bootups)]: Cap.Bootups,
+    [propIdToApiId(alfenProps.general.bootReason)]: Cap.BootReason,
+    [propIdToApiId(alfenProps.general.uptime)]: Cap.UptimeHours,
+
+    // P1 / smart meter as seen by the charger (only requested when enabled in settings)
+    [normalizeApiId(p1Props.currentL1)]: Cap.P1CurrentL1,
+    [normalizeApiId(p1Props.currentL2)]: Cap.P1CurrentL2,
+    [normalizeApiId(p1Props.currentL3)]: Cap.P1CurrentL3,
+    [normalizeApiId(p1Props.powerTotal)]: Cap.P1PowerTotal,
     //[propIdToApiId(alfenProps.general.operativeMode)]: Cap.EvCharging,
     [propIdToApiId(alfenProps.solar.chargeType)]: Cap.ChargeType,
     [propIdToApiId(alfenProps.solar.greenShare)]: Cap.GreenShare,

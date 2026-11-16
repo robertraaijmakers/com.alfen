@@ -1,0 +1,39 @@
+{
+    "type": "enum",
+    "title": {
+        "en": "Homey connection",
+        "nl": "Homey-verbinding"
+    },
+    "desc": {
+        "en": "Off = no login, so Eve/MyEve/ACE can log in (max 60 min, then On). On = login per poll. On, stay logged in = one login kept open, never dropped unless you change it.",
+        "nl": "Uit = niet inloggen, zodat Eve/MyEve/ACE kan inloggen (max 60 min, daarna Aan). Aan = login per poll. Aan, ingelogd blijven = één login vast, nooit verbroken tenzij je het wijzigt."
+    },
+    "values": [
+        {
+            "id": "off",
+            "title": {
+                "en": "Off - no login (for Eve)",
+                "nl": "Uit - niet inloggen (voor Eve)"
+            }
+        },
+        {
+            "id": "interval",
+            "title": {
+                "en": "On - login per poll",
+                "nl": "Aan - login per poll"
+            }
+        },
+        {
+            "id": "continuous",
+            "title": {
+                "en": "On - stay logged in",
+                "nl": "Aan - ingelogd blijven"
+            }
+        }
+    ],
+    "getable": true,
+    "setable": true,
+    "uiComponent": "picker",
+    "icon": "/assets/operating-mode.svg",
+    "insights": false
+}

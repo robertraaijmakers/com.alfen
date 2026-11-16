@@ -1,0 +1,11 @@
+{
+    "type": "string",
+    "title": {
+        "en": "Last boot reason",
+        "nl": "Laatste opstartreden"
+    },
+    "getable": true,
+    "setable": false,
+    "uiComponent": "sensor",
+    "icon": "/assets/operating-mode.svg"
+}

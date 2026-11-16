@@ -5,6 +5,8 @@
   },
   "class": "evcharger",
   "capabilities": [
+    "status_summary",
+    "homey_connection",
     "operatingmode",
     "measure_current",
     "measure_power",
@@ -31,7 +33,10 @@
     "chargetype",
     "authmode",
     "chargeid",
-    "active_charge_id"
+    "active_charge_id",
+    "bootups",
+    "uptime_hours",
+    "boot_reason"
   ],
   "energy": {
     "evCharger": true,
