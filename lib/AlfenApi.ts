@@ -29,6 +29,32 @@ export class AlfenApi {
 
   #log: (...args: any[]) => void;
 
+  /** keep one login open between polls instead of login/logout per poll. */
+  persistent: boolean = false;
+
+  /**
+   * login guard for 'stay logged in'. Every login leaks a little memory in the
+   * wallbox firmware, and with fast polling a lost session must never turn into a login per poll.
+   * Rule: a session loss gets one fresh login; a second loss within LOGIN_GUARD_MS of that re-login
+   * (someone else, e.g. Eve, is using the wallbox) pauses reads for LOGIN_GUARD_MS.
+   */
+  static readonly LOGIN_GUARD_MS = 15 * 60_000;
+  /** Per-property logging; switched off for fast polling (a few seconds) to keep the app log small. */
+  verbose: boolean = true;
+  #lastReloginAt: number = 0;
+  #backoffUntil: number = 0;
+
+  /** True while reads are paused by the login guard (writes still go through). */
+  isBackingOff(): boolean {
+    return Date.now() < this.#backoffUntil;
+  }
+
+  /** Clears the login guard (used when the user picks a connection mode again). */
+  resetLoginGuard(): void {
+    this.#backoffUntil = 0;
+    this.#lastReloginAt = 0;
+  }
+
   constructor(logger: (...args: any[]) => void, ip: string, username: string, password: string) {
     this.#log = logger || console.log;
 
@@ -37,7 +63,7 @@ export class AlfenApi {
     this.#password = password;
   }
 
-  async withSession<T>(operation: (api: AlfenApi) => Promise<T>): Promise<T> {
+  async withSession<T>(operation: (api: AlfenApi) => Promise<T>, opts: { isWrite?: boolean } = {}): Promise<T> {
     const previous = AlfenApi.#sessionQueues.get(this.#ip) ?? Promise.resolve();
     let release!: () => void;
     const hold = new Promise<void>((resolve) => {
@@ -47,6 +73,37 @@ export class AlfenApi {
     AlfenApi.#sessionQueues.set(this.#ip, queued);
 
     await previous;
+
+    if (this.persistent) {
+      try {
+        // Reads wait out the guard; writes (EV control) still go through.
+        if (!opts.isWrite && this.isBackingOff()) {
+          throw new Error(`Login guard: reads paused until ${new Date(this.#backoffUntil).toISOString()} (wallbox in use by another client?)`);
+        }
+        try {
+          if (!this.#agent) await this.#guardedLogin(opts.isWrite === true);
+          return await operation(this);
+        } catch (error) {
+          // Session lost (wallbox closed the socket, rebooted, or someone else logged in).
+          this.#dropAgent();
+          if (!opts.isWrite && Date.now() - this.#lastReloginAt < AlfenApi.LOGIN_GUARD_MS) {
+            this.#backoffUntil = Date.now() + AlfenApi.LOGIN_GUARD_MS;
+            this.#log('Persistent session lost again within 15 min of the last re-login: reads paused 15 min.', error);
+            throw error;
+          }
+          this.#lastReloginAt = Date.now();
+          this.#log('Persistent session failed, logging in again (one retry):', error);
+          await this.#guardedLogin(opts.isWrite === true);
+          return await operation(this);
+        }
+      } finally {
+        release();
+        if (AlfenApi.#sessionQueues.get(this.#ip) === queued) {
+          AlfenApi.#sessionQueues.delete(this.#ip);
+        }
+      }
+    }
+
     let loggedIn = false;
     try {
       await this.apiLogin();
@@ -61,6 +118,56 @@ export class AlfenApi {
           AlfenApi.#sessionQueues.delete(this.#ip);
         }
       }
+    }
+  }
+
+  /** Persistent login; a failed read-triggered login pauses reads for 1 min (no login storm when the wallbox is away). */
+  async #guardedLogin(isWrite: boolean): Promise<void> {
+    try {
+      await this.#loginOnce();
+    } catch (error) {
+      if (!isWrite) this.#backoffUntil = Math.max(this.#backoffUntil, Date.now() + 60_000);
+      throw error;
+    }
+  }
+
+  /** Single login used by the persistent mode (no reference counting). */
+  async #loginOnce(): Promise<void> {
+    this.#dropAgent();
+    this.#agent = new https.Agent({ keepAlive: true, keepAliveMsecs: 30000, maxSockets: 1, rejectUnauthorized: false });
+    const body = JSON.stringify({ username: this.#username, password: this.#password });
+    try {
+      await this.#httpsRequestKeepAlive(this.#agent, `/${apiUrl}/login`, 'POST', body);
+      this.#log('Persistent login successful');
+    } catch (error) {
+      this.#dropAgent();
+      throw new Error(`Login failed: ${error}`);
+    }
+  }
+
+  #dropAgent(): void {
+    if (this.#agent) {
+      try { this.#agent.destroy(); } catch { /* ignore */ }
+    }
+    this.#agent = null;
+    this.#retrieving = 0;
+  }
+
+  /**
+   * Log out now and free the web login, whatever mode is active (waits for running operations).
+   * Used by 'release for Eve', settings changes and device removal.
+   */
+  async release(): Promise<void> {
+    const previous = AlfenApi.#sessionQueues.get(this.#ip) ?? Promise.resolve();
+    await previous.catch(() => undefined);
+    if (!this.#agent) return;
+    try {
+      await this.#httpsRequestKeepAlive(this.#agent, `/${apiUrl}/logout`, 'POST');
+      this.#log('Released: logged out');
+    } catch (error) {
+      this.#log('Release logout failed (ignored):', error);
+    } finally {
+      this.#dropAgent();
     }
   }
 
@@ -157,16 +264,13 @@ export class AlfenApi {
     }
   }
 
-  async apiGetActualValues(socketIndex: SocketIndex = 1) {
-    const propIds = getActualValuePropIds(socketIndex);
-    const ids = buildIds(propIds);
-
-    const options: HttpsPromiseOptions = {
-      path: `/${apiUrl}/prop?ids=${ids}`,
-      method: 'GET',
-      headers: {},
-      keepAlive: true,
-    };
+  async apiGetActualValues(socketIndex: SocketIndex = 1, includeP1: boolean = false, includeLimit: boolean = true) {
+    const propIds = getActualValuePropIds(socketIndex, includeP1);
+    // The wallbox answers at most 32 properties per request (ids beyond 32 are silently dropped),
+    // so read in chunks of 32 within the same login.
+    const allIds = buildIds(propIds).split(',');
+    const chunks: string[] = [];
+    for (let i = 0; i < allIds.length; i += 32) chunks.push(allIds.slice(i, i + 32).join(','));
 
     let bodyResult: PropertyResponseBody;
     const capabilitiesData: Array<{
@@ -176,11 +280,23 @@ export class AlfenApi {
 
     try {
       // Make the HTTPS request using the httpsPromise method
-      const response = await this.#httpsPromise(options);
-      bodyResult = <PropertyResponseBody>response.body;
+      const merged: PropertyResponseBody['properties'] = [];
+      for (const ids of chunks) {
+        const options: HttpsPromiseOptions = { path: `/${apiUrl}/prop?ids=${ids}`, method: 'GET', headers: {}, keepAlive: true };
+        const response = await this.#httpsPromise(options);
+        const part = <PropertyResponseBody>response.body;
+        if (part === undefined || !Array.isArray(part?.properties)) {
+          throw new Error('apiGetActualValues: unexpected response body (no properties array).');
+        }
+        merged.push(...part.properties);
+      }
+      bodyResult = <PropertyResponseBody>{ properties: merged };
 
-      const additionalData = await this.#apiGetChargingLimit();
-      capabilitiesData.push(...additionalData);
+      // the charging profile (target power) rarely changes; with fast polling it is read at most once a minute.
+      if (includeLimit) {
+        const additionalData = await this.#apiGetChargingLimit();
+        capabilitiesData.push(...additionalData);
+      }
     } catch (error) {
       this.#log('Request failed:', error);
       throw new Error(`Request failed: ${error}`);
@@ -206,7 +322,7 @@ export class AlfenApi {
       const apiId = normalizeApiId(prop.id);
       const capabilityId = capMap[apiId] ?? fallbackMap?.[apiId];
 
-      this.#log(`Property: ${apiId}: ${prop.value}, Type: ${prop.type}, Category: ${prop.cat}, Access: ${prop.access}, Capability: ${capabilityId ?? 'Unknown'}`);
+      if (this.verbose) this.#log(`Property: ${apiId}: ${prop.value}, Type: ${prop.type}, Category: ${prop.cat}, Access: ${prop.access}, Capability: ${capabilityId ?? 'Unknown'}`);
 
       if (!capabilityId) {
         // development aid: shows missing mappings
@@ -407,7 +523,7 @@ export class AlfenApi {
         value: limitWatts,
       });
 
-      this.#log('Charging limit profile read:', {
+      if (this.verbose) this.#log('Charging limit profile read:', {
         ampsPerPhase,
         phases,
         limitWatts,
@@ -761,6 +877,14 @@ export class AlfenApi {
     // }
 
     // String capabilities
+    if (capabilityId === Cap.BootReason) {
+      return { value: String(v) };
+    }
+    if (capabilityId === Cap.UptimeHours) {
+      const ms = typeof v === 'number' ? v : Number(v);
+      return Number.isFinite(ms) ? { value: Math.round((ms / 3_600_000) * 10) / 10 } : {};
+    }
+
     if (capabilityId === Cap.AuthMode || capabilityId === Cap.ChargeType || capabilityId === Cap.ChargeID) {
       return { value: String(v) };
     }

@@ -1,0 +1,13 @@
+{
+    "type": "number",
+    "title": {
+        "en": "Boot count",
+        "nl": "Aantal opstarts"
+    },
+    "getable": true,
+    "setable": false,
+    "insights": true,
+    "decimals": 0,
+    "uiComponent": "sensor",
+    "icon": "/assets/operating-mode.svg"
+}

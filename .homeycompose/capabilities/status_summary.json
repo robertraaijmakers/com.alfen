@@ -1,0 +1,12 @@
+{
+    "type": "string",
+    "title": {
+        "en": "Charge mode",
+        "nl": "Laadmodus"
+    },
+    "getable": true,
+    "setable": false,
+    "uiComponent": "sensor",
+    "icon": "/assets/operating-mode.svg",
+    "insights": false
+}
